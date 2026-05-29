@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { soundManager } from '../audio/SoundGenerator';
 import { RankingManager } from '../ranking/RankingManager';
+import { showNameInput } from '../ranking/NameInput';
 
 interface GameOverData {
   score: number;
@@ -50,12 +51,13 @@ export class GameOverScene extends Phaser.Scene {
       color: '#ffffff'
     }).setOrigin(0.5);
 
-    // Salva score se for high score
-    if (RankingManager.isHighScore(this.finalScore)) {
-      const name = window.prompt('NEW HIGH SCORE! ENTER YOUR NAME (3 LETTERS):');
-      if (name !== null) {
-        RankingManager.saveScore(name.slice(0, 8), this.finalScore);
-      }
+    // Salva score se for high score (input customizado dentro do canvas)
+    if (RankingManager.isHighScore(this.finalScore) && this.finalScore > 0) {
+      showNameInput(this).then((name) => {
+        if (name !== null) {
+          RankingManager.saveScore(name, this.finalScore);
+        }
+      });
     }
 
     // Dica ou frase motivacional retrô
@@ -100,8 +102,7 @@ export class GameOverScene extends Phaser.Scene {
     });
 
     // Botão de High Scores
-    const yOffset = RankingManager.isHighScore(this.finalScore) && this.finalScore > 0 ? 0 : 30;
-    this.rankingBtn = this.add.text(width / 2, height * 0.88 - yOffset, 'VIEW HIGH SCORES', {
+    this.rankingBtn = this.add.text(width / 2, height * 0.88, 'VIEW HIGH SCORES', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '11px',
       color: '#ffd700'

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { soundManager } from '../audio/SoundGenerator';
 import { RankingManager } from '../ranking/RankingManager';
+import { showNameInput } from '../ranking/NameInput';
 
 interface VictoryData {
   score: number;
@@ -75,12 +76,13 @@ export class VictoryScene extends Phaser.Scene {
       color: '#ffffff'
     }).setOrigin(0.5);
 
-    // Salva score se for high score
-    if (RankingManager.isHighScore(totalScore)) {
-      const name = window.prompt('NEW HIGH SCORE! ENTER YOUR NAME (3 LETTERS):');
-      if (name !== null) {
-        RankingManager.saveScore(name.slice(0, 8), totalScore);
-      }
+    // Salva score se for high score (input customizado dentro do canvas)
+    if (RankingManager.isHighScore(totalScore) && totalScore > 0) {
+      showNameInput(this).then((name) => {
+        if (name !== null) {
+          RankingManager.saveScore(name, totalScore);
+        }
+      });
     }
 
     // Botão de Menu Inicial
