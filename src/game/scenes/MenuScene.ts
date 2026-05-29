@@ -3,6 +3,7 @@ import { soundManager } from '../audio/SoundGenerator';
 
 export class MenuScene extends Phaser.Scene {
   private startBtn!: Phaser.GameObjects.Text;
+  private highScoresBtn!: Phaser.GameObjects.Text;
 
   constructor() {
     super('MenuScene');
@@ -69,6 +70,30 @@ export class MenuScene extends Phaser.Scene {
     this.startBtn.on('pointerout', () => {
       this.startBtn.setColor('#39ff14');
       this.startBtn.setShadow(0, 0, '#39ff14', 5, true, true);
+    });
+
+    // Botão de High Scores
+    this.highScoresBtn = this.add.text(width / 2, height * 0.88, 'HIGH SCORES', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '12px',
+      color: '#ffd700'
+    }).setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .setShadow(0, 0, '#ffd700', 4, true, true);
+
+    this.highScoresBtn.on('pointerdown', () => {
+      soundManager.playPowerup();
+      this.scene.start('RankingScene', { highlightScore: 0 });
+    });
+
+    this.highScoresBtn.on('pointerover', () => {
+      this.highScoresBtn.setColor('#00f0ff');
+      this.highScoresBtn.setShadow(0, 0, '#00f0ff', 10, true, true);
+    });
+
+    this.highScoresBtn.on('pointerout', () => {
+      this.highScoresBtn.setColor('#ffd700');
+      this.highScoresBtn.setShadow(0, 0, '#ffd700', 4, true, true);
     });
   }
 

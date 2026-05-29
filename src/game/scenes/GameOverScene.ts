@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { soundManager } from '../audio/SoundGenerator';
+import { RankingManager } from '../ranking/RankingManager';
 
 interface GameOverData {
   score: number;
@@ -8,6 +9,7 @@ interface GameOverData {
 export class GameOverScene extends Phaser.Scene {
   private finalScore: number = 0;
   private retryBtn!: Phaser.GameObjects.Text;
+  private rankingBtn!: Phaser.GameObjects.Text;
 
   constructor() {
     super('GameOverScene');
@@ -48,6 +50,14 @@ export class GameOverScene extends Phaser.Scene {
       color: '#ffffff'
     }).setOrigin(0.5);
 
+    // Salva score se for high score
+    if (RankingManager.isHighScore(this.finalScore)) {
+      const name = window.prompt('NEW HIGH SCORE! ENTER YOUR NAME (3 LETTERS):');
+      if (name !== null) {
+        RankingManager.saveScore(name.slice(0, 8), this.finalScore);
+      }
+    }
+
     // Dica ou frase motivacional retrô
     this.add.text(width / 2, height * 0.6, 'YOUR ENERGY SPIRIT HAS FADED...', {
       fontFamily: '"Press Start 2P", monospace',
@@ -87,6 +97,31 @@ export class GameOverScene extends Phaser.Scene {
     this.retryBtn.on('pointerout', () => {
       this.retryBtn.setColor('#00f0ff');
       this.retryBtn.setShadow(0, 0, '#00f0ff', 6, true, true);
+    });
+
+    // Botão de High Scores
+    const yOffset = RankingManager.isHighScore(this.finalScore) && this.finalScore > 0 ? 0 : 30;
+    this.rankingBtn = this.add.text(width / 2, height * 0.88 - yOffset, 'VIEW HIGH SCORES', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '11px',
+      color: '#ffd700'
+    }).setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .setShadow(0, 0, '#ffd700', 4, true, true);
+
+    this.rankingBtn.on('pointerdown', () => {
+      soundManager.playPowerup();
+      this.scene.start('RankingScene', { highlightScore: this.finalScore });
+    });
+
+    this.rankingBtn.on('pointerover', () => {
+      this.rankingBtn.setColor('#00f0ff');
+      this.rankingBtn.setShadow(0, 0, '#00f0ff', 10, true, true);
+    });
+
+    this.rankingBtn.on('pointerout', () => {
+      this.rankingBtn.setColor('#ffd700');
+      this.rankingBtn.setShadow(0, 0, '#ffd700', 4, true, true);
     });
   }
 }
