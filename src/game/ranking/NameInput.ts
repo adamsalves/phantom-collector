@@ -34,7 +34,7 @@ export function showNameInput(scene: Phaser.Scene): Promise<string | null> {
     }).setOrigin(0.5);
     container.add(nameDisplay);
 
-    scene.tweens.add({
+    const cursorTween = scene.tweens.add({
       targets: nameDisplay,
       alpha: { from: 1, to: 0.2 },
       duration: 400,
@@ -87,15 +87,16 @@ export function showNameInput(scene: Phaser.Scene): Promise<string | null> {
 
     scene.input.keyboard?.on('keydown', handler);
 
-    const originalPause = scene.physics.world.isPaused;
+    const originalPause = scene.physics.world?.isPaused;
     if (!originalPause) {
-      scene.physics.world.pause();
+      scene.physics.world?.pause();
     }
 
     container.on('destroy', () => {
+      cursorTween.stop();
       scene.input.keyboard?.off('keydown', handler);
       if (!originalPause) {
-        scene.physics.world.resume();
+        scene.physics.world?.resume();
       }
     });
   });
