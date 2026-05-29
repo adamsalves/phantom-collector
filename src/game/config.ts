@@ -4,6 +4,7 @@ import { MenuScene } from './scenes/MenuScene';
 import { PlayScene } from './scenes/PlayScene';
 import { GameOverScene } from './scenes/GameOverScene';
 import { VictoryScene } from './scenes/VictoryScene';
+import { RankingScene } from './scenes/RankingScene';
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -22,5 +23,5 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     }
   },
   parent: 'game-canvas',
-  scene: [BootScene, MenuScene, PlayScene, GameOverScene, VictoryScene]
+  scene: [BootScene, MenuScene, PlayScene, GameOverScene, VictoryScene, RankingScene]
 };
