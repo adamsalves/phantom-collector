@@ -1,16 +1,85 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Phantom Game - Javascript</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.14.0/dist/phaser.min.js"></script>
-  <script src="game.js"></script>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Phantom: The Collector - Retro Arcade</title>
+  <meta name="description" content="Um jogo clássico de fliperama 8-bit desenvolvido em Phaser 3, TypeScript e Tailwind CSS." />
 </head>
-<body>
-  <h1>Phantom, the collector - JS Game</h1>
-  <div id="game"></div>
-  <p>Use the arrows keys to move around and collect the coins</p>
+<body class="bg-retro-purple-dark text-white min-h-screen flex flex-col justify-between items-center p-4 md:p-6 select-none font-sans relative">
+
+  <!-- Efeito de Grade de Fundo Neon Sci-Fi -->
+  <div class="absolute inset-0 bg-[linear-gradient(to_right,#2d124d_1px,transparent_1px),linear-gradient(to_bottom,#2d124d_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-30 z-0"></div>
+
+  <!-- Header principal do Fliperama -->
+  <header class="text-center z-10 my-2">
+    <h1       class="font-retro text-2xl md:text-3xl lg:text-4xl neon-text-cyan tracking-wider font-extrabold uppercase animate-pulse">
+      PHANTOM
+    </h1>
+    <p class="font-retro text-xs md:text-sm neon-text-pink mt-1 tracking-widest">
+      THE SUPREME COLLECTOR
+    </p>
+  </header>
+
+  <!-- Gabinete do Fliperama Virtual -->
+  <main class="w-full max-w-[760px] bg-retro-purple bg-opacity-70 backdrop-blur-md rounded-2xl border border-retro-purple-light p-4 md:p-6 shadow-2xl relative z-10 flex flex-col items-center">
+    
+    <!-- Moldura e Vidro da Tela CRT -->
+    <div class="w-full bg-black p-3 md:p-5 rounded-xl border-4 border-retro-purple-light shadow-neon-pink">
+      <div class="relative crt-screen neon-border-cyan rounded-lg border border-neon-cyan flex justify-center items-center bg-black">
+        <!-- Container onde o Phaser renderizará o Canvas -->
+        <div id="game-canvas" class="w-full"></div>
+      </div>
+    </div>
+
+    <!-- Painel de Dicas de Power-Ups e Controles -->
+    <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 text-xs md:text-sm font-mono border-t border-retro-purple-light pt-4">
+      
+      <!-- Lado Esquerdo: Controles -->
+      <div class="bg-black bg-opacity-40 rounded-lg p-3 border border-retro-purple-light">
+        <h3 class="font-retro text-[10px] text-neon-cyan mb-2">🕹️ CONTROLS</h3>
+        <ul class="space-y-1 text-gray-300">
+          <li class="flex justify-between"><span>MOVE PHANTOM:</span><span class="text-neon-cyan font-bold">ARROW KEYS</span></li>
+          <li class="flex justify-between"><span>GOAL:</span><span class="text-yellow-400 font-bold">COLLECT COINS</span></li>
+          <li class="flex justify-between"><span>SURVIVAL:</span><span class="text-emerald-400 font-bold">RECOVER ENERGY</span></li>
+        </ul>
+      </div>
+
+      <!-- Lado Direito: Itens/Powerups -->
+      <div class="bg-black bg-opacity-40 rounded-lg p-3 border border-retro-purple-light">
+        <h3 class="font-retro text-[10px] text-neon-pink mb-2">⚡ POWER-UPS</h3>
+        <div class="grid grid-cols-3 gap-2 text-[10px] text-center">
+          <div class="flex flex-col items-center">
+            <span class="w-4 h-4 rounded-full bg-neon-cyan shadow-neon-cyan mb-1 animate-ping"></span>
+            <span class="text-neon-cyan font-bold text-[8px] uppercase">Speed</span>
+          </div>
+          <div class="flex flex-col items-center">
+            <span class="w-4 h-4 rounded-full bg-neon-pink shadow-neon-pink mb-1 animate-pulse"></span>
+            <span class="text-neon-pink font-bold text-[8px] uppercase">Shield</span>
+          </div>
+          <div class="flex flex-col items-center">
+            <span class="w-4 h-4 rounded-full bg-ectoplasm shadow-neon-green mb-1 animate-bounce"></span>
+            <span class="text-ectoplasm font-bold text-[8px] uppercase">Magnet</span>
+          </div>
+          <div class="flex flex-col items-center">
+            <span class="w-4 h-4 rounded-full bg-purple-600 shadow-[0_0_10px_#aa00ff,0_0_20px_#aa00ff] mb-1 animate-pulse"></span>
+            <span class="text-purple-400 font-bold text-[8px] uppercase">Phase</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Rodapé Estilizado -->
+  <footer class="text-center text-[10px] font-mono text-gray-500 z-10 py-3 mt-4 border-t border-retro-purple-light w-full max-w-[760px] flex flex-col md:flex-row justify-between items-center">
+    <p>1980s Retro Arcade Inc. — Todos os direitos reservados</p>
+    <p class="text-neon-cyan hover:text-neon-pink transition duration-300 cursor-pointer">INSERT COIN TO START</p>
+  </footer>
+
+  <!-- Script principal carregado via Vite -->
+  <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
