@@ -12,12 +12,14 @@ const unlockAudio = (): void => {
     const dummyCtx = new ctx();
     if (dummyCtx.state === 'suspended') {
       const resume = (): void => {
-        dummyCtx.resume();
+        dummyCtx.resume().then(() => dummyCtx.close());
         window.removeEventListener('click', resume);
         window.removeEventListener('keydown', resume);
       };
       window.addEventListener('click', resume);
       window.addEventListener('keydown', resume);
+    } else {
+      dummyCtx.close();
     }
   }
 };

@@ -16,7 +16,7 @@ export class PlayScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
   private coin!: Phaser.Physics.Arcade.Sprite;
   private enemies!: Phaser.Physics.Arcade.Group;
-  private activePowerUp: PowerUp | null = null;
+  private droppedPowerUp: PowerUp | null = null;
 
   // Lógica de Estado
   private score: number = 0;
@@ -25,8 +25,9 @@ export class PlayScene extends Phaser.Scene {
   private maxEnergy: number = 100;
   
   // Power-up ativo no jogador
-  private activePowerUpType: 'speed' | 'shield' | 'magnet' | 'phase' | null = null;
+  private activeEffect: 'speed' | 'shield' | 'magnet' | 'phase' | null = null;
   private powerUpTimeLeft: number = 0;
+  private isHurtInvincible: boolean = false;
 
   // Input
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -52,8 +53,9 @@ export class PlayScene extends Phaser.Scene {
     this.score = data.score || 0;
     this.level = data.level || 1;
     this.energy = 100;
-    this.activePowerUpType = null;
+    this.activeEffect = null;
     this.powerUpTimeLeft = 0;
+    this.isHurtInvincible = false;
     this.overlayActive = true;
 
     // Aumenta a dificuldade com o nível
@@ -124,7 +126,7 @@ export class PlayScene extends Phaser.Scene {
     }, undefined, this);
 
     this.physics.add.overlap(this.player, this.enemies, () => {
-      if (this.activePowerUpType !== 'shield') {
+      if (this.activeEffect !== 'shield') {
         this.handlePlayerHurt();
       }
     }, undefined, this);
@@ -153,22 +155,22 @@ export class PlayScene extends Phaser.Scene {
     this.handleEnemiesAI();
 
     // D. Atração do Ímã de Moedas (se ativo)
-    if (this.activePowerUpType === 'magnet') {
+    if (this.activeEffect === 'magnet') {
       this.handleMagnetEffect();
     }
 
     // E. Wrap Fantasma (Phase) — atravessa paredes e surge do lado oposto
-    if (this.activePowerUpType === 'phase') {
+    if (this.activeEffect === 'phase') {
       this.handlePhaseWrap();
     }
 
     // F. Gerenciamento de Duração do Power-Up
-    if (this.activePowerUpType && this.powerUpTimeLeft > 0) {
+    if (this.activeEffect && this.powerUpTimeLeft > 0) {
       this.powerUpTimeLeft -= delta;
       const secondsLeft = Math.ceil(this.powerUpTimeLeft / 1000);
-      this.powerUpText.setText(`[${this.activePowerUpType.toUpperCase()}: ${secondsLeft}S]`);
+      this.powerUpText.setText(`[${this.activeEffect.toUpperCase()}: ${secondsLeft}S]`);
       
-      if (this.activePowerUpType === 'shield' && secondsLeft <= 2) {
+      if (this.activeEffect === 'shield' && secondsLeft <= 2) {
         this.player.setAlpha(Math.sin(_time / 50) > 0 ? 1 : 0.4);
       }
 
@@ -177,9 +179,9 @@ export class PlayScene extends Phaser.Scene {
       }
     }
 
-    // G. Colisão Player <-> Power-up ativo na cena
-    if (this.activePowerUp) {
-      if (this.physics.overlap(this.player, this.activePowerUp.sprite)) {
+    // G. Colisão Player <-> Power-up ativo na cena (ignorado durante invencibilidade pós-dano)
+    if (this.droppedPowerUp && !this.isHurtInvincible) {
+      if (this.physics.overlap(this.player, this.droppedPowerUp.sprite)) {
         this.handlePowerUpCollection();
       }
     }
@@ -189,7 +191,7 @@ export class PlayScene extends Phaser.Scene {
     let speed = this.playerBaseSpeed;
 
     // Dobra a velocidade se tiver Speed Boots
-    if (this.activePowerUpType === 'speed') {
+    if (this.activeEffect === 'speed') {
       speed *= 1.6;
       
       // Adiciona mini-rastro estético (particles retro)
@@ -329,24 +331,25 @@ export class PlayScene extends Phaser.Scene {
     this.physics.velocityFromRotation(randomAngle, 300, playerBody.velocity);
 
     // Torna o player invencível temporariamente para evitar hit instantâneo em cadeia
-    this.activePowerUpType = 'shield';
+    this.activeEffect = 'shield';
     this.powerUpTimeLeft = 1200; // 1.2 segundos de invencibilidade grátis após dano
+    this.isHurtInvincible = true;
     this.powerUpText.setText('[INVENCIBLE!]');
     this.player.setTint(0xff0055);
   }
 
   private handlePowerUpCollection(): void {
-    if (!this.activePowerUp) return;
+    if (!this.droppedPowerUp) return;
 
     soundManager.playPowerup();
-    const type = this.activePowerUp.type;
+    const type = this.droppedPowerUp.type;
 
     // Destrói o sprite na tela
-    this.activePowerUp.sprite.destroy();
-    this.activePowerUp = null;
+    this.droppedPowerUp.sprite.destroy();
+    this.droppedPowerUp = null;
 
     // Ativa power-up no jogador
-    this.activePowerUpType = type;
+    this.activeEffect = type;
     this.player.setAlpha(1);
 
     if (type === 'speed') {
@@ -371,10 +374,11 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private deactivatePowerUp(): void {
-    if (this.activePowerUpType === 'phase') {
+    if (this.activeEffect === 'phase') {
       this.player.setCollideWorldBounds(true);
     }
-    this.activePowerUpType = null;
+    this.activeEffect = null;
+    this.isHurtInvincible = false;
     this.powerUpText.setText('');
     this.player.clearTint();
     this.player.setAlpha(1);
@@ -431,7 +435,7 @@ export class PlayScene extends Phaser.Scene {
 
   private spawnPowerUp(): void {
     // Não spawna se já houver um na tela
-    if (this.activePowerUp) return;
+    if (this.droppedPowerUp) return;
 
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
@@ -449,7 +453,7 @@ export class PlayScene extends Phaser.Scene {
     const sprite = this.physics.add.sprite(rx, ry, textureKey);
     sprite.setCollideWorldBounds(true);
 
-    this.activePowerUp = {
+    this.droppedPowerUp = {
       sprite,
       type: chosenType
     };
@@ -466,9 +470,9 @@ export class PlayScene extends Phaser.Scene {
 
     // Remove automaticamente o powerup após 7 segundos se não coletado
     this.time.delayedCall(7000, () => {
-      if (this.activePowerUp && this.activePowerUp.sprite === sprite) {
+      if (this.droppedPowerUp && this.droppedPowerUp.sprite === sprite) {
         sprite.destroy();
-        this.activePowerUp = null;
+        this.droppedPowerUp = null;
       }
     });
   }
@@ -532,9 +536,10 @@ export class PlayScene extends Phaser.Scene {
 
     const currentWidth = (this.energy / this.maxEnergy) * barWidth;
 
-    if (currentWidth > 0) {
+    const fillWidth = Math.max(2, currentWidth - 2);
+    if (fillWidth > 0) {
       this.energyBar.fillStyle(color, 1);
-      this.energyBar.fillRect(barX + 1, barY + 1, currentWidth - 2, barHeight - 2);
+      this.energyBar.fillRect(barX + 1, barY + 1, fillWidth, barHeight - 2);
     }
   }
 
