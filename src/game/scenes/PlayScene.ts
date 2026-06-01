@@ -41,9 +41,9 @@ export class PlayScene extends Phaser.Scene {
   private overlayActive: boolean = true;
 
   // Dificuldade e Balanço por Nível
-  private energyDecayRate: number = 0.15; // Energia perdida por frame/ciclo
+  private energyDecayRate: number = 0.15;
   private playerBaseSpeed: number = 220;
-  private levelGoals: number[] = [10, 15, 20]; // Qtd de moedas para passar de fase
+  private powerUpSpawnDelay: number = 12000;
 
   constructor() {
     super('PlayScene');
@@ -58,8 +58,9 @@ export class PlayScene extends Phaser.Scene {
     this.isHurtInvincible = false;
     this.overlayActive = true;
 
-    // Aumenta a dificuldade com o nível
-    this.energyDecayRate = 0.12 + this.level * 0.06;
+    // Dificuldade escalável com platô (padrão arcade clássico)
+    this.energyDecayRate = Math.min(0.12 + this.level * 0.03, 0.60);
+    this.powerUpSpawnDelay = Math.max(12000 - (this.level - 1) * 400, 6000);
   }
 
   public create(): void {
@@ -105,9 +106,9 @@ export class PlayScene extends Phaser.Scene {
     // 7. Configuração de HUD (Tailwind ou texto estilizado Phaser com press start 2p)
     this.createHUD();
 
-    // 8. Agendamento para Spawn Esporádico de Power-ups (a cada 12 segundos)
+    // 8. Agendamento para Spawn Esporádico de Power-ups (delay dinâmico por nível)
     this.time.addEvent({
-      delay: 12000,
+      delay: this.powerUpSpawnDelay,
       callback: this.spawnPowerUp,
       callbackScope: this,
       loop: true
@@ -239,8 +240,8 @@ export class PlayScene extends Phaser.Scene {
       const enemyBody = enemy.body as Phaser.Physics.Arcade.Body;
       if (!enemyBody) return;
       
-      // Inteligência de Perseguição no Level 3 (Somente para o primeiro inimigo para equilibrar a jogabilidade)
-      if (this.level === 3 && enemy.name === 'stalker') {
+      // Inteligência de Perseguição a cada 5 níveis (stalker)
+      if (this.level % 5 === 0 && enemy.name === 'stalker') {
         const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
         const chaseSpeed = 110;
         this.physics.velocityFromRotation(angle, chaseSpeed, enemyBody.velocity);
@@ -305,7 +306,7 @@ export class PlayScene extends Phaser.Scene {
     this.drawEnergyBar();
 
     // Verifica vitória ou passagem de fase
-    const goal = this.levelGoals[this.level - 1];
+    const goal = this.getLevelGoal();
     const coinsCollected = this.score / 10;
 
     if (coinsCollected >= goal) {
@@ -406,8 +407,8 @@ export class PlayScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
 
-    // Número de inimigos baseado no nível: Level 1 (1 bat), Level 2 (2 bats), Level 3 (3 bats)
-    const count = this.level;
+    // Inimigos escalam com o nível até um máximo de 8 (padrão arcade)
+    const count = Math.min(1 + Math.floor((this.level - 1) / 2), 8);
 
     for (let i = 0; i < count; i++) {
       const rx = Phaser.Math.Between(50, width - 50);
@@ -419,16 +420,16 @@ export class PlayScene extends Phaser.Scene {
       
       const enemyBody = enemy.body as Phaser.Physics.Arcade.Body;
       if (enemyBody) {
-        // Velocidades variadas e ângulos aleatórios
-        const baseSpeed = 90 + this.level * 25;
+        // Velocidade escala com o nível até um máximo de 250
+        const baseSpeed = Math.min(90 + this.level * 10, 250);
         const angle = Phaser.Math.Between(0, 360) * (Math.PI / 180);
         this.physics.velocityFromRotation(angle, baseSpeed, enemyBody.velocity);
       }
 
-      // Nomeia o primeiro inimigo do Level 3 como 'stalker' para IA de perseguição
-      if (this.level === 3 && i === 0) {
+      // Stalker (IA de perseguição) a cada 5 níveis, apenas 1 por level
+      if (this.level % 5 === 0 && i === 0) {
         enemy.setName('stalker');
-        enemy.setTint(0xff00ff); // Coloração magenta diferenciada para avisar o jogador
+        enemy.setTint(0xff00ff);
       }
     }
   }
@@ -485,8 +486,8 @@ export class PlayScene extends Phaser.Scene {
       color: '#ffffff'
     });
 
-    // 2. Nível Atual
-    this.add.text(175, 15, `LEVEL: ${this.level}/3`, {
+    // 2. Nível Atual (endless — sem teto)
+    this.add.text(175, 15, `LEVEL: ${this.level}`, {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '14px',
       color: '#00f0ff'
@@ -571,9 +572,7 @@ export class PlayScene extends Phaser.Scene {
       color: '#00f0ff'
     }).setOrigin(0.5);
 
-    let scenarioName = 'THE CRYPTS';
-    if (this.level === 2) scenarioName = 'THE HAUNTED DUNGEON';
-    if (this.level === 3) scenarioName = 'PHANTOM\'S LAIR';
+    const scenarioName = this.getScenarioName(this.level);
 
     const text2 = this.add.text(width / 2, height / 2 + 10, scenarioName, {
       fontFamily: '"Press Start 2P", monospace',
@@ -581,7 +580,7 @@ export class PlayScene extends Phaser.Scene {
       color: '#ff007f'
     }).setOrigin(0.5);
 
-    const goal = this.levelGoals[this.level - 1];
+    const goal = this.getLevelGoal();
     const text3 = this.add.text(width / 2, height / 2 + 50, `GOAL: COLLECT ${goal} COINS`, {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '10px',
@@ -605,18 +604,26 @@ export class PlayScene extends Phaser.Scene {
     this.physics.world.pause();
     soundManager.playLevelClear();
 
-    if (this.level < 3) {
-      // Transiciona para a próxima fase carregando os mesmos dados e score acumulado
-      this.scene.start('PlayScene', { score: this.score, level: this.level + 1 });
-    } else {
-      // Vitórias após passar as 3 fases!
-      this.scene.start('VictoryScene', { score: this.score });
-    }
+    this.scene.start('PlayScene', { score: this.score, level: this.level + 1 });
   }
 
   private triggerGameOver(): void {
     this.physics.world.pause();
     soundManager.playGameOver();
     this.scene.start('GameOverScene', { score: this.score });
+  }
+
+  private getLevelGoal(): number {
+    return Math.min(10 + (this.level - 1) * 2, 30);
+  }
+
+  private getScenarioName(level: number): string {
+    const names = [
+      'THE CRYPTS', 'THE HAUNTED DUNGEON', 'PHANTOM\'S LAIR',
+      'THE DARK FOREST', 'THE ABANDONED MINE', 'THE SPECTRAL TOWER',
+      'THE VOID GATE', 'THE ECHO CAVERNS', 'THE OBSIDIAN FORTRESS',
+      'THE NEXUS'
+    ];
+    return names[(level - 1) % names.length];
   }
 }
