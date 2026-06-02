@@ -28,6 +28,7 @@ export class PlayScene extends Phaser.Scene {
   private activeEffect: 'speed' | 'shield' | 'magnet' | 'phase' | null = null;
   private powerUpTimeLeft: number = 0;
   private isHurtInvincible: boolean = false;
+  private hurtInvincibleTimer: Phaser.Time.TimerEvent | null = null;
 
   // Input
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -140,7 +141,7 @@ export class PlayScene extends Phaser.Scene {
     }, undefined, this);
 
     this.physics.add.overlap(this.player, this.enemies, () => {
-      if (this.activeEffect !== 'shield') {
+      if (this.activeEffect !== 'shield' && !this.isHurtInvincible) {
         this.handlePlayerHurt();
       }
     }, undefined, this);
@@ -181,12 +182,20 @@ export class PlayScene extends Phaser.Scene {
       this.handlePhaseWrap();
     }
 
-    // F. Gerenciamento de Duração do Power-Up
+    // F. Texto de Invencibilidade (sobrescreve o texto de power-up)
+    if (this.isHurtInvincible) {
+      this.powerUpText.setText('[INVENCIBLE!]');
+    }
+
+    // G. Gerenciamento de Duração do Power-Up
     if (this.activeEffect && this.powerUpTimeLeft > 0) {
       this.powerUpTimeLeft -= delta;
       const secondsLeft = Math.ceil(this.powerUpTimeLeft / 1000);
-      this.powerUpText.setText(`[${this.activeEffect.toUpperCase()}: ${secondsLeft}S]`);
-      
+
+      if (!this.isHurtInvincible) {
+        this.powerUpText.setText(`[${this.activeEffect.toUpperCase()}: ${secondsLeft}S]`);
+      }
+
       if (this.activeEffect === 'shield' && secondsLeft <= 2) {
         this.player.setAlpha(Math.sin(_time / 50) > 0 ? 1 : 0.4);
       }
@@ -196,8 +205,8 @@ export class PlayScene extends Phaser.Scene {
       }
     }
 
-    // G. Colisão Player <-> Power-up ativo na cena (ignorado durante invencibilidade pós-dano)
-    if (this.droppedPowerUp && !this.isHurtInvincible) {
+    // H. Colisão Player <-> Power-up ativo na cena
+    if (this.droppedPowerUp) {
       if (this.physics.overlap(this.player, this.droppedPowerUp.sprite)) {
         this.handlePowerUpCollection();
       }
@@ -362,23 +371,32 @@ export class PlayScene extends Phaser.Scene {
     const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
     if (!playerBody) return;
 
-    // Reduz drasticamente a energia ectoplásmica
     this.energy = Math.max(0, this.energy - 30);
     soundManager.playHurt();
 
-    // Efeito visual dramático retrô: Tela pisca em vermelho, jogador brilha
     this.cameras.main.flash(200, 255, 0, 0);
-    
-    // Pequeno ricochete / repulsão do player
+
     const randomAngle = Phaser.Math.Between(0, 360) * (Math.PI / 180);
     this.physics.velocityFromRotation(randomAngle, 300, playerBody.velocity);
 
-    // Torna o player invencível temporariamente para evitar hit instantâneo em cadeia
-    this.activeEffect = 'shield';
-    this.powerUpTimeLeft = 1200; // 1.2 segundos de invencibilidade grátis após dano
     this.isHurtInvincible = true;
-    this.powerUpText.setText('[INVENCIBLE!]');
     this.player.setTint(0xff0055);
+
+    if (this.hurtInvincibleTimer) {
+      this.hurtInvincibleTimer.destroy();
+    }
+    this.hurtInvincibleTimer = this.time.delayedCall(1200, () => {
+      this.isHurtInvincible = false;
+      this.hurtInvincibleTimer = null;
+
+      if (this.activeEffect && this.powerUpTimeLeft > 0) {
+        this.applyPowerUpVisuals();
+      } else {
+        this.player.clearTint();
+        this.player.setAlpha(1);
+        this.powerUpText.setText('');
+      }
+    });
   }
 
   private handlePowerUpCollection(): void {
@@ -421,10 +439,30 @@ export class PlayScene extends Phaser.Scene {
       this.player.setCollideWorldBounds(true);
     }
     this.activeEffect = null;
-    this.isHurtInvincible = false;
     this.powerUpText.setText('');
     this.player.clearTint();
     this.player.setAlpha(1);
+  }
+
+  private applyPowerUpVisuals(): void {
+    if (!this.activeEffect) return;
+    this.player.clearTint();
+    this.player.setAlpha(1);
+    switch (this.activeEffect) {
+      case 'speed':
+        this.player.setTint(0x00f0ff);
+        break;
+      case 'shield':
+        this.player.setTint(0xff007f);
+        break;
+      case 'magnet':
+        this.player.setTint(0x39ff14);
+        break;
+      case 'phase':
+        this.player.setTint(0xaa00ff);
+        this.player.setAlpha(0.7);
+        break;
+    }
   }
 
   private spawnCoinRandomly(): void {
@@ -451,7 +489,7 @@ export class PlayScene extends Phaser.Scene {
       qx === 0 ? midX - margin : width - margin
     );
     const ry = Phaser.Math.Between(
-      qy === 0 ? 100 : midY + margin,
+      qy === 0 ? margin + 50 : midY + margin,
       qy === 0 ? midY - margin : height - margin
     );
 
