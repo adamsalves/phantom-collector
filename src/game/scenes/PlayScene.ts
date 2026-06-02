@@ -40,10 +40,15 @@ export class PlayScene extends Phaser.Scene {
   // Estado do overlay inicial de level
   private overlayActive: boolean = true;
 
+  // Gatilhos de power-up por contexto
+  private coinsInLevel: number = 0;
+  private energyCrisisTriggered: boolean = false;
+  private manyEnemiesTriggered: boolean = false;
+
   // Dificuldade e Balanço por Nível
-  private energyDecayRate: number = 0.15; // Energia perdida por frame/ciclo
+  private energyDecayRate: number = 0.15;
   private playerBaseSpeed: number = 220;
-  private levelGoals: number[] = [10, 15, 20]; // Qtd de moedas para passar de fase
+  private powerUpSpawnDelay: number = 12000;
 
   constructor() {
     super('PlayScene');
@@ -57,9 +62,13 @@ export class PlayScene extends Phaser.Scene {
     this.powerUpTimeLeft = 0;
     this.isHurtInvincible = false;
     this.overlayActive = true;
+    this.droppedPowerUp = null;
+    this.coinsInLevel = 0;
+    this.energyCrisisTriggered = false;
+    this.manyEnemiesTriggered = false;
 
-    // Aumenta a dificuldade com o nível
-    this.energyDecayRate = 0.12 + this.level * 0.06;
+    this.energyDecayRate = this.getEnergyDecay();
+    this.powerUpSpawnDelay = this.getPowerUpDelay();
   }
 
   public create(): void {
@@ -105,12 +114,17 @@ export class PlayScene extends Phaser.Scene {
     // 7. Configuração de HUD (Tailwind ou texto estilizado Phaser com press start 2p)
     this.createHUD();
 
-    // 8. Agendamento para Spawn Esporádico de Power-ups (a cada 12 segundos)
+    // 8. Agendamento para Spawn Esporádico de Power-ups (delay dinâmico por nível)
     this.time.addEvent({
-      delay: 12000,
+      delay: this.powerUpSpawnDelay,
       callback: this.spawnPowerUp,
       callbackScope: this,
       loop: true
+    });
+
+    // 9. Welcome pack — primeiro power-up mais cedo
+    this.time.delayedCall(this.level === 1 ? 5000 : 8000, () => {
+      if (!this.droppedPowerUp) this.spawnPowerUp();
     });
 
     // 9. Colisões Persistentes (Phaser colliders otimizados)
@@ -154,7 +168,10 @@ export class PlayScene extends Phaser.Scene {
     // C. IA de Inimigos
     this.handleEnemiesAI();
 
-    // D. Atração do Ímã de Moedas (se ativo)
+    // D. Gatilhos contextuais de power-up
+    this.checkPowerUpTriggers();
+
+    // E. Atração do Ímã de Moedas (se ativo)
     if (this.activeEffect === 'magnet') {
       this.handleMagnetEffect();
     }
@@ -239,8 +256,8 @@ export class PlayScene extends Phaser.Scene {
       const enemyBody = enemy.body as Phaser.Physics.Arcade.Body;
       if (!enemyBody) return;
       
-      // Inteligência de Perseguição no Level 3 (Somente para o primeiro inimigo para equilibrar a jogabilidade)
-      if (this.level === 3 && enemy.name === 'stalker') {
+      // Inteligência de Perseguição a cada 5 níveis (stalker)
+      if (this.level % 5 === 0 && enemy.name === 'stalker') {
         const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
         const chaseSpeed = 110;
         this.physics.velocityFromRotation(angle, chaseSpeed, enemyBody.velocity);
@@ -276,10 +293,31 @@ export class PlayScene extends Phaser.Scene {
     // Alcance do magnetismo: 180px
     if (dist < 180) {
       const coinBody = this.coin.body as Phaser.Physics.Arcade.Body;
+
       if (!coinBody) return;
       const angle = Phaser.Math.Angle.Between(this.coin.x, this.coin.y, this.player.x, this.player.y);
       const pullForce = 350;
       this.physics.velocityFromRotation(angle, pullForce, coinBody.velocity);
+    }
+  }
+
+  private checkPowerUpTriggers(): void {
+    if (this.droppedPowerUp) return;
+
+    if (this.energy < 25 && !this.energyCrisisTriggered) {
+      this.energyCrisisTriggered = true;
+      if (Math.random() < 0.7) {
+        this.spawnPowerUp('shield', 'speed');
+        return;
+      }
+    }
+
+    const aliveCount = this.enemies.countActive();
+    if (aliveCount >= 5 && !this.manyEnemiesTriggered) {
+      this.manyEnemiesTriggered = true;
+      if (Math.random() < 0.6) {
+        this.spawnPowerUp('phase', 'speed');
+      }
     }
   }
 
@@ -299,16 +337,21 @@ export class PlayScene extends Phaser.Scene {
     // Score e Recuperação de energia ectoplásmica
     this.score += 10;
     this.energy = Math.min(this.maxEnergy, this.energy + 20); // Recupera 20%
-    
+    this.coinsInLevel++;
+
+    // Gatilho de power-up a cada 3 moedas no level
+    if (this.coinsInLevel % 3 === 0 && !this.droppedPowerUp) {
+      this.spawnPowerUp();
+    }
+
     // Atualiza HUD
     this.scoreText.setText(`SCORE: ${this.score}`);
     this.drawEnergyBar();
 
     // Verifica vitória ou passagem de fase
-    const goal = this.levelGoals[this.level - 1];
-    const coinsCollected = this.score / 10;
+    const goal = this.getLevelGoal();
 
-    if (coinsCollected >= goal) {
+    if (this.coinsInLevel >= goal) {
       this.triggerLevelComplete();
     } else {
       this.spawnCoinRandomly();
@@ -388,26 +431,40 @@ export class PlayScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
 
-    // Evita spawn muito grudado nas bordas ou no centro de ação do player
-    let rx = Phaser.Math.Between(50, width - 50);
-    let ry = Phaser.Math.Between(100, height - 50);
+    const margin = 30;
+    const midX = width / 2;
+    const midY = height / 2;
 
-    // Impede spawn imediato em cima do Phantom
-    while (Phaser.Math.Distance.Between(rx, ry, this.player.x, this.player.y) < 120) {
-      rx = Phaser.Math.Between(50, width - 50);
-      ry = Phaser.Math.Between(100, height - 50);
-    }
+    // Determina quadrante do jogador
+    const playerQx = this.player.x < midX ? 0 : 1;
+    const playerQy = this.player.y < midY ? 0 : 1;
+
+    // Escolhe quadrante diferente (NW, NE, SW, SE)
+    let qx: number, qy: number;
+    do {
+      qx = Phaser.Math.Between(0, 1);
+      qy = Phaser.Math.Between(0, 1);
+    } while (qx === playerQx && qy === playerQy);
+
+    const rx = Phaser.Math.Between(
+      qx === 0 ? margin : midX + margin,
+      qx === 0 ? midX - margin : width - margin
+    );
+    const ry = Phaser.Math.Between(
+      qy === 0 ? 100 : midY + margin,
+      qy === 0 ? midY - margin : height - margin
+    );
 
     this.coin.setPosition(rx, ry);
-    this.coin.setVelocity(0, 0); // Zera velocidade magnética anterior
+    this.coin.setVelocity(0, 0);
   }
 
   private spawnEnemies(): void {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
 
-    // Número de inimigos baseado no nível: Level 1 (1 bat), Level 2 (2 bats), Level 3 (3 bats)
-    const count = this.level;
+    // Inimigos escalam com o nível até um máximo de 7 (padrão arcade)
+    const count = this.getEnemyCount();
 
     for (let i = 0; i < count; i++) {
       const rx = Phaser.Math.Between(50, width - 50);
@@ -419,22 +476,20 @@ export class PlayScene extends Phaser.Scene {
       
       const enemyBody = enemy.body as Phaser.Physics.Arcade.Body;
       if (enemyBody) {
-        // Velocidades variadas e ângulos aleatórios
-        const baseSpeed = 90 + this.level * 25;
+        const baseSpeed = this.getEnemySpeed();
         const angle = Phaser.Math.Between(0, 360) * (Math.PI / 180);
         this.physics.velocityFromRotation(angle, baseSpeed, enemyBody.velocity);
       }
 
-      // Nomeia o primeiro inimigo do Level 3 como 'stalker' para IA de perseguição
-      if (this.level === 3 && i === 0) {
+      // Stalker (IA de perseguição) a cada 5 níveis, apenas 1 por level
+      if (this.level % 5 === 0 && i === 0) {
         enemy.setName('stalker');
-        enemy.setTint(0xff00ff); // Coloração magenta diferenciada para avisar o jogador
+        enemy.setTint(0xff00ff);
       }
     }
   }
 
-  private spawnPowerUp(): void {
-    // Não spawna se já houver um na tela
+  private spawnPowerUp(biasA?: 'speed' | 'shield' | 'magnet' | 'phase', biasB?: 'speed' | 'shield' | 'magnet' | 'phase'): void {
     if (this.droppedPowerUp) return;
 
     const width = this.cameras.main.width;
@@ -443,8 +498,7 @@ export class PlayScene extends Phaser.Scene {
     const rx = Phaser.Math.Between(50, width - 50);
     const ry = Phaser.Math.Between(100, height - 100);
 
-    const types: ('speed' | 'shield' | 'magnet' | 'phase')[] = ['speed', 'shield', 'magnet', 'phase'];
-    const chosenType = types[Phaser.Math.Between(0, 3)];
+    const chosenType = this.pickPowerUpType(biasA, biasB);
     let textureKey = 'powerup_speed';
     if (chosenType === 'shield') textureKey = 'powerup_shield';
     if (chosenType === 'magnet') textureKey = 'powerup_magnet';
@@ -485,8 +539,8 @@ export class PlayScene extends Phaser.Scene {
       color: '#ffffff'
     });
 
-    // 2. Nível Atual
-    this.add.text(175, 15, `LEVEL: ${this.level}/3`, {
+    // 2. Nível Atual (endless — sem teto)
+    this.add.text(175, 15, `LEVEL: ${this.level}`, {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '14px',
       color: '#00f0ff'
@@ -571,9 +625,7 @@ export class PlayScene extends Phaser.Scene {
       color: '#00f0ff'
     }).setOrigin(0.5);
 
-    let scenarioName = 'THE CRYPTS';
-    if (this.level === 2) scenarioName = 'THE HAUNTED DUNGEON';
-    if (this.level === 3) scenarioName = 'PHANTOM\'S LAIR';
+    const scenarioName = this.getScenarioName(this.level);
 
     const text2 = this.add.text(width / 2, height / 2 + 10, scenarioName, {
       fontFamily: '"Press Start 2P", monospace',
@@ -581,7 +633,7 @@ export class PlayScene extends Phaser.Scene {
       color: '#ff007f'
     }).setOrigin(0.5);
 
-    const goal = this.levelGoals[this.level - 1];
+    const goal = this.getLevelGoal();
     const text3 = this.add.text(width / 2, height / 2 + 50, `GOAL: COLLECT ${goal} COINS`, {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '10px',
@@ -605,18 +657,59 @@ export class PlayScene extends Phaser.Scene {
     this.physics.world.pause();
     soundManager.playLevelClear();
 
-    if (this.level < 3) {
-      // Transiciona para a próxima fase carregando os mesmos dados e score acumulado
-      this.scene.start('PlayScene', { score: this.score, level: this.level + 1 });
-    } else {
-      // Vitórias após passar as 3 fases!
-      this.scene.start('VictoryScene', { score: this.score });
-    }
+    this.scene.start('PlayScene', { score: this.score, level: this.level + 1 });
   }
 
   private triggerGameOver(): void {
     this.physics.world.pause();
     soundManager.playGameOver();
     this.scene.start('GameOverScene', { score: this.score });
+  }
+
+  private getLevelGoal(): number {
+    return Math.min(10 + Math.floor(Math.pow(this.level, 0.7) * 4), 28);
+  }
+
+  private getEnemyCount(): number {
+    return Math.min(1 + Math.floor(this.level / 2.5), 7);
+  }
+
+  private getEnemySpeed(): number {
+    return Math.min(80 + this.level * 7, 200);
+  }
+
+  private getEnergyDecay(): number {
+    return Math.min(0.10 + Math.sqrt(this.level) * 0.10, 0.55);
+  }
+
+  private getPowerUpDelay(): number {
+    return Math.max(12000 - (this.level - 1) * 300, 5000);
+  }
+
+  private pickPowerUpType(
+    biasA?: 'speed' | 'shield' | 'magnet' | 'phase',
+    biasB?: 'speed' | 'shield' | 'magnet' | 'phase'
+  ): 'speed' | 'shield' | 'magnet' | 'phase' {
+    const all: ('speed' | 'shield' | 'magnet' | 'phase')[] = ['speed', 'shield', 'magnet', 'phase'];
+    const pool = [...all];
+
+    if (biasA) {
+      pool.push(biasA, biasA);
+    }
+    if (biasB) {
+      pool.push(biasB);
+    }
+
+    return Phaser.Math.RND.pick(pool);
+  }
+
+  private getScenarioName(level: number): string {
+    const names = [
+      'THE CRYPTS', 'THE HAUNTED DUNGEON', 'PHANTOM\'S LAIR',
+      'THE DARK FOREST', 'THE ABANDONED MINE', 'THE SPECTRAL TOWER',
+      'THE VOID GATE', 'THE ECHO CAVERNS', 'THE OBSIDIAN FORTRESS',
+      'THE NEXUS'
+    ];
+    return names[(level - 1) % names.length];
   }
 }
