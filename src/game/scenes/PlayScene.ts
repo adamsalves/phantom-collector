@@ -62,6 +62,7 @@ export class PlayScene extends Phaser.Scene {
     this.powerUpTimeLeft = 0;
     this.isHurtInvincible = false;
     this.overlayActive = true;
+    this.droppedPowerUp = null;
     this.coinsInLevel = 0;
     this.energyCrisisTriggered = false;
     this.manyEnemiesTriggered = false;
