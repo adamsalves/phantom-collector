@@ -165,9 +165,9 @@ export class VictoryScene extends Phaser.Scene {
         x: confetti.x + Phaser.Math.Between(-80, 80),
         angle: Phaser.Math.Between(0, 360),
         duration: Phaser.Math.Between(2000, 4000),
-        loop: -1,
         delay: Phaser.Math.Between(0, 3000),
-        ease: 'Quad.easeOut'
+        ease: 'Quad.easeOut',
+        onComplete: () => confetti.destroy()
       });
     }
   }
