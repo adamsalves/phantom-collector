@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { soundManager } from '../audio/SoundGenerator';
+import { getCoinValue, getCoinEnergy, pickCoinType } from '../utils/coinHelper';
 
 interface PlaySceneData {
   score: number;
@@ -29,6 +30,22 @@ export class PlayScene extends Phaser.Scene {
   private powerUpTimeLeft: number = 0;
   private isHurtInvincible: boolean = false;
   private hurtInvincibleTimer: Phaser.Time.TimerEvent | null = null;
+
+  // Variedade de moedas (Spec 05)
+  private coinType: 'gold' | 'silver' | 'rainbow' = 'gold';
+  private rainbowTweenCounter: Phaser.Tweens.Tween | null = null;
+  private coinParticles: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
+
+  // Crise de Energia (Spec 02)
+  private heartbeatAudio: { stop: () => void } | null = null;
+  private heartbeatBpm: number | null = null;
+  private nextFlashTime: number = 0;
+  private nextShakeTime: number = 0;
+
+  // Sistema de Pausa (Spec 03)
+  private isPaused: boolean = false;
+  private pauseOverlay: Phaser.GameObjects.Container | null = null;
+  private pauseKey!: Phaser.Input.Keyboard.Key;
 
   // Input
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -67,6 +84,15 @@ export class PlayScene extends Phaser.Scene {
     this.coinsInLevel = 0;
     this.energyCrisisTriggered = false;
     this.manyEnemiesTriggered = false;
+    this.coinType = 'gold';
+    this.rainbowTweenCounter = null;
+    this.coinParticles = null;
+    this.heartbeatAudio = null;
+    this.heartbeatBpm = null;
+    this.nextFlashTime = 0;
+    this.nextShakeTime = 0;
+    this.isPaused = false;
+    this.pauseOverlay = null;
 
     this.energyDecayRate = this.getEnergyDecay();
     this.powerUpSpawnDelay = this.getPowerUpDelay();
@@ -91,21 +117,39 @@ export class PlayScene extends Phaser.Scene {
     this.coin = this.physics.add.sprite(300, 200, 'coin');
     this.coin.setBounce(0.4, 0.4);
     this.coin.setCollideWorldBounds(true);
-    this.spawnCoinRandomly();
 
-    // Animação cíclica sutil na moeda
-    this.tweens.add({
-      targets: this.coin,
-      y: '+=8',
-      yoyo: true,
-      repeat: -1,
-      duration: 600,
-      ease: 'Sine.easeInOut'
+    // Configura o emissor de partículas para moedas (Phaser 3)
+    this.coinParticles = this.add.particles(0, 0, 'spark', {
+      lifespan: 600,
+      speed: { min: 40, max: 120 },
+      scale: { start: 1.5, end: 0 },
+      alpha: { start: 0.8, end: 0 },
+      frequency: -1, // Emite apenas sob demanda (explodir)
+      quantity: 12
     });
+    this.coinParticles.setDepth(15);
+
+    this.spawnCoinRandomly();
 
     // 5. Grupo de Inimigos (Bats/Ghosts)
     this.enemies = this.physics.add.group();
     this.spawnEnemies();
+
+    // ESC para Pausa (Spec 03)
+    if (this.input.keyboard) {
+      this.pauseKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+      this.pauseKey.on('down', () => {
+        this.togglePause();
+      });
+    }
+
+    // Eventos de limpeza da cena (evitar vazamento de áudio/timers)
+    this.events.once('shutdown', () => {
+      this.cleanupScene();
+    });
+    this.events.once('destroy', () => {
+      this.cleanupScene();
+    });
 
     // 6. Configuração dos Controles (Teclas de seta e WASD)
     if (this.input.keyboard) {
@@ -148,13 +192,21 @@ export class PlayScene extends Phaser.Scene {
   }
 
   public update(_time: number, delta: number): void {
+    // Se estiver pausado, não processa nada do update (Spec 03)
+    if (this.isPaused) return;
+
     // A. Atualiza energia (apenas quando o overlay inicial já fechou)
     if (this.energy > 0 && !this.overlayActive) {
       this.energy -= this.energyDecayRate * (delta / 16.666);
+      
+      // Feedback de Energia Crítica (Spec 02)
+      this.handleEnergyCrisisFeedback(_time);
+
       this.drawEnergyBar();
 
       if (this.energy <= 0) {
         this.energy = 0;
+        this.stopHeartbeat();
         this.triggerGameOver();
         return;
       }
@@ -331,21 +383,66 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private handleCoinCollection(): void {
-    soundManager.playCoin();
+    // 1. Toca som e define os valores baseados no tipo (Spec 05)
+    let scoreGain = getCoinValue(this.coinType);
+    let energyGain = getCoinEnergy(this.coinType);
+    let playerScale = 1.25;
+    let floatyColor = '#ffd700';
+
+    if (this.coinType === 'gold') {
+      soundManager.playCoin();
+      floatyColor = '#ffd700';
+    } else if (this.coinType === 'silver') {
+      soundManager.playCoinSilver();
+      playerScale = 1.5;
+      floatyColor = '#c0c0c0';
+
+      // Partículas prateadas
+      if (this.coinParticles) {
+        this.coinParticles.setConfig({
+          tint: 0xc0c0c0,
+          scale: { start: 1.5, end: 0 },
+          lifespan: 600,
+          speed: { min: 40, max: 120 }
+        });
+        this.coinParticles.explode(15, this.coin.x, this.coin.y);
+      }
+    } else if (this.coinType === 'rainbow') {
+      soundManager.playCoinRainbow();
+      playerScale = 1.75;
+      floatyColor = '#00f0ff'; // Texto flutuante neon azul/ciano
+
+      // Flash na tela
+      this.cameras.main.flash(200, 255, 255, 255);
+
+      // Partículas coloridas
+      if (this.coinParticles) {
+        this.coinParticles.setConfig({
+          tint: [0xff007f, 0x00f0ff, 0x39ff14, 0xffd700],
+          scale: { start: 2.0, end: 0 },
+          lifespan: 700,
+          speed: { min: 60, max: 150 }
+        });
+        this.coinParticles.explode(25, this.coin.x, this.coin.y);
+      }
+    }
+
+    // Texto flutuante com o valor
+    this.showFloatyText(this.coin.x, this.coin.y, `+${scoreGain}`, floatyColor);
 
     // Tweens divertidos de feedback
     this.tweens.add({
       targets: this.player,
-      scaleX: 1.25,
-      scaleY: 1.25,
+      scaleX: playerScale,
+      scaleY: playerScale,
       duration: 120,
       yoyo: true,
       ease: 'Quad.easeInOut'
     });
 
     // Score e Recuperação de energia ectoplásmica
-    this.score += 10;
-    this.energy = Math.min(this.maxEnergy, this.energy + 20); // Recupera 20%
+    this.score += scoreGain;
+    this.energy = Math.min(this.maxEnergy, this.energy + energyGain); // Recupera de forma variável
     this.coinsInLevel++;
 
     // Gatilho de power-up a cada 3 moedas no level
@@ -495,6 +592,99 @@ export class PlayScene extends Phaser.Scene {
 
     this.coin.setPosition(rx, ry);
     this.coin.setVelocity(0, 0);
+
+    // Variedade de moedas (Spec 05)
+    this.coinType = pickCoinType();
+
+    // Limpa tweens antigos da moeda
+    this.tweens.killTweensOf(this.coin);
+    if (this.rainbowTweenCounter) {
+      this.rainbowTweenCounter.stop();
+      this.rainbowTweenCounter = null;
+    }
+
+    // Para qualquer emissão de partículas antiga
+    if (this.coinParticles) {
+      this.coinParticles.stopFollow();
+      this.coinParticles.stop();
+    }
+
+    // Configura visuais baseados no tipo
+    this.coin.setScale(1.0);
+    this.coin.clearTint();
+
+    if (this.coinType === 'gold') {
+      this.coin.setTint(0xffd700);
+      
+      this.tweens.add({
+        targets: this.coin,
+        y: '+=8',
+        yoyo: true,
+        repeat: -1,
+        duration: 600,
+        ease: 'Sine.easeInOut'
+      });
+    } else if (this.coinType === 'silver') {
+      this.coin.setTint(0xc0c0c0);
+
+      // Flutuação
+      this.tweens.add({
+        targets: this.coin,
+        y: '+=6',
+        yoyo: true,
+        repeat: -1,
+        duration: 500,
+        ease: 'Sine.easeInOut'
+      });
+
+      // Pulso de escala
+      this.tweens.add({
+        targets: this.coin,
+        scaleX: 1.3,
+        scaleY: 1.3,
+        yoyo: true,
+        repeat: -1,
+        duration: 800,
+        ease: 'Linear'
+      });
+    } else if (this.coinType === 'rainbow') {
+      // Ciclo de cores HSL
+      this.rainbowTweenCounter = this.tweens.addCounter({
+        from: 0,
+        to: 360,
+        duration: 2000,
+        repeat: -1,
+        onUpdate: (tween) => {
+          const hue = (tween.getValue() as number) ?? 0;
+          const color = Phaser.Display.Color.HSLToColor(hue / 360, 1, 0.5);
+          this.coin.setTint(color.color);
+        }
+      });
+
+      // Flutuação
+      this.tweens.add({
+        targets: this.coin,
+        y: '+=10',
+        yoyo: true,
+        repeat: -1,
+        duration: 700,
+        ease: 'Sine.easeInOut'
+      });
+
+      // Emana faíscas sutis
+      if (this.coinParticles) {
+        this.coinParticles.startFollow(this.coin);
+        this.coinParticles.setConfig({
+          frequency: 200,
+          quantity: 1,
+          scale: { start: 1.2, end: 0 },
+          lifespan: 500,
+          speed: { min: 20, max: 50 },
+          tint: [0xff007f, 0x00f0ff, 0x39ff14, 0xffd700]
+        });
+        this.coinParticles.start();
+      }
+    }
   }
 
   private spawnEnemies(): void {
@@ -518,12 +708,14 @@ export class PlayScene extends Phaser.Scene {
         const angle = Phaser.Math.Between(0, 360) * (Math.PI / 180);
         this.physics.velocityFromRotation(angle, baseSpeed, enemyBody.velocity);
       }
+    }
 
-      // Stalker (IA de perseguição) a cada 5 níveis, apenas 1 por level
-      if (this.level % 5 === 0 && i === 0) {
-        enemy.setName('stalker');
-        enemy.setTint(0xff00ff);
-      }
+    // Sorteia o stalker entre os inimigos criados (Spec 04 — Stalker Aleatório)
+    if (this.level % 5 === 0 && count > 0) {
+      const stalkerIndex = Phaser.Math.Between(0, count - 1);
+      const stalker = this.enemies.getChildren()[stalkerIndex] as Phaser.Physics.Arcade.Sprite;
+      stalker.setName('stalker');
+      stalker.setTint(0xff00ff);
     }
   }
 
@@ -633,6 +825,31 @@ export class PlayScene extends Phaser.Scene {
       this.energyBar.fillStyle(color, 1);
       this.energyBar.fillRect(barX + 1, barY + 1, fillWidth, barHeight - 2);
     }
+
+    // Efeitos visuais na barra de energia (Spec 02)
+    if (this.energy <= 10) {
+      // Abaixo de 10%, pisca (alpha alternando 1.0 ↔ 0.3)
+      const pulseTime = this.time.now;
+      this.energyBar.setAlpha(Math.sin(pulseTime / 80) > 0 ? 1.0 : 0.3);
+      this.energyBar.setScale(1.0);
+      this.energyBar.setPosition(0, 0);
+    } else if (this.energy <= 25) {
+      // Entre 10% e 25%, pulsa em escala a partir do centro da barra
+      const pulseTime = this.time.now;
+      const scale = 1.0 + Math.sin(pulseTime / 150) * 0.08;
+      this.energyBar.setAlpha(1.0);
+      
+      const centerX = barX + barWidth / 2;
+      const centerY = barY + barHeight / 2;
+      
+      this.energyBar.setScale(scale);
+      this.energyBar.setPosition(centerX * (1 - scale), centerY * (1 - scale));
+    } else {
+      // Estado normal
+      this.energyBar.setAlpha(1.0);
+      this.energyBar.setScale(1.0);
+      this.energyBar.setPosition(0, 0);
+    }
   }
 
   private showFloatyText(x: number, y: number, text: string, color: string): void {
@@ -692,6 +909,7 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private triggerLevelComplete(): void {
+    this.stopHeartbeat();
     this.physics.world.pause();
     soundManager.playLevelClear();
 
@@ -699,6 +917,7 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private triggerGameOver(): void {
+    this.stopHeartbeat();
     this.physics.world.pause();
     soundManager.playGameOver();
     this.scene.start('GameOverScene', { score: this.score });
@@ -749,5 +968,155 @@ export class PlayScene extends Phaser.Scene {
       'THE NEXUS'
     ];
     return names[(level - 1) % names.length];
+  }
+
+  // Métodos do Sistema de Pausa (Spec 03)
+  private togglePause(): void {
+    if (this.overlayActive) return;
+
+    this.isPaused = !this.isPaused;
+    soundManager.playPause();
+
+    if (this.isPaused) {
+      this.physics.world.pause();
+      this.time.paused = true;
+      this.tweens.pauseAll();
+
+      if (this.heartbeatAudio) {
+        this.heartbeatAudio.stop();
+        this.heartbeatAudio = null;
+      }
+
+      this.createPauseOverlay();
+    } else {
+      this.resumeGameplay();
+    }
+  }
+
+  private resumeGameplay(): void {
+    this.isPaused = false;
+
+    if (this.pauseOverlay) {
+      this.pauseOverlay.destroy();
+      this.pauseOverlay = null;
+    }
+
+    this.physics.world.resume();
+    this.time.paused = false;
+    this.tweens.resumeAll();
+  }
+
+  private createPauseOverlay(): void {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+
+    this.pauseOverlay = this.add.container(0, 0).setDepth(200);
+
+    const background = this.add.rectangle(width / 2, height / 2, width, height, 0x0d041a, 0.75);
+    this.pauseOverlay.add(background);
+
+    const pausedText = this.add.text(width / 2, height / 3, 'PAUSED', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '28px',
+      color: '#00f0ff'
+    }).setOrigin(0.5).setShadow(0, 0, '#00f0ff', 10, true, true);
+    this.pauseOverlay.add(pausedText);
+
+    const resumeBtn = this.add.text(width / 2, height * 0.52, 'RESUME', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '14px',
+      color: '#39ff14'
+    }).setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .setShadow(0, 0, '#39ff14', 4, true, true);
+    
+    resumeBtn.on('pointerdown', () => {
+      this.resumeGameplay();
+      soundManager.playPause();
+    });
+    resumeBtn.on('pointerover', () => {
+      resumeBtn.setColor('#ffffff');
+      resumeBtn.setShadow(0, 0, '#ffffff', 8, true, true);
+    });
+    resumeBtn.on('pointerout', () => {
+      resumeBtn.setColor('#39ff14');
+      resumeBtn.setShadow(0, 0, '#39ff14', 4, true, true);
+    });
+    this.pauseOverlay.add(resumeBtn);
+
+    const quitBtn = this.add.text(width / 2, height * 0.65, 'QUIT TO MENU', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '14px',
+      color: '#ff007f'
+    }).setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .setShadow(0, 0, '#ff007f', 4, true, true);
+
+    quitBtn.on('pointerdown', () => {
+      this.stopHeartbeat();
+      soundManager.playPause();
+      this.scene.start('MenuScene');
+    });
+    quitBtn.on('pointerover', () => {
+      quitBtn.setColor('#ffffff');
+      quitBtn.setShadow(0, 0, '#ffffff', 8, true, true);
+    });
+    quitBtn.on('pointerout', () => {
+      quitBtn.setColor('#ff007f');
+      quitBtn.setShadow(0, 0, '#ff007f', 4, true, true);
+    });
+    this.pauseOverlay.add(quitBtn);
+
+    const tipText = this.add.text(width / 2, height * 0.8, 'PRESS ESC OR CLICK RESUME TO CONTINUE', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '8px',
+      color: '#888888'
+    }).setOrigin(0.5);
+    this.pauseOverlay.add(tipText);
+  }
+
+  // Métodos do Feedback de Energia Crítica (Spec 02)
+  private handleEnergyCrisisFeedback(time: number): void {
+    if (this.energy <= 25) {
+      const targetBpm = this.energy <= 10 ? 120 : 60;
+      
+      if (this.heartbeatAudio === null || this.heartbeatBpm !== targetBpm) {
+        if (this.heartbeatAudio) {
+          this.heartbeatAudio.stop();
+        }
+        this.heartbeatAudio = soundManager.playCrisisHeartbeat(targetBpm);
+        this.heartbeatBpm = targetBpm;
+      }
+
+      if (time > this.nextFlashTime) {
+        this.cameras.main.flash(400, 255, 0, 0);
+        this.nextFlashTime = time + 2000;
+      }
+
+      if (this.energy <= 10 && time > this.nextShakeTime) {
+        this.cameras.main.shake(100, 0.005);
+        this.nextShakeTime = time + 2000;
+      }
+    } else {
+      this.stopHeartbeat();
+    }
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeatAudio) {
+      this.heartbeatAudio.stop();
+      this.heartbeatAudio = null;
+      this.heartbeatBpm = null;
+    }
+  }
+
+  private cleanupScene(): void {
+    this.stopHeartbeat();
+    if (this.rainbowTweenCounter) {
+      this.rainbowTweenCounter.stop();
+    }
+    if (this.pauseKey) {
+      this.pauseKey.removeAllListeners();
+    }
   }
 }
