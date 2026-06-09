@@ -44,6 +44,7 @@ export class PlayScene extends Phaser.Scene {
 
   // Sistema de Pausa (Spec 03)
   private isPaused: boolean = false;
+  private isPauseTransitioning: boolean = false;
   private pauseOverlay: Phaser.GameObjects.Container | null = null;
   private pauseKey!: Phaser.Input.Keyboard.Key;
 
@@ -92,6 +93,7 @@ export class PlayScene extends Phaser.Scene {
     this.nextFlashTime = 0;
     this.nextShakeTime = 0;
     this.isPaused = false;
+    this.isPauseTransitioning = false;
     this.pauseOverlay = null;
 
     this.energyDecayRate = this.getEnergyDecay();
@@ -972,7 +974,7 @@ export class PlayScene extends Phaser.Scene {
 
   // Métodos do Sistema de Pausa (Spec 03)
   private togglePause(): void {
-    if (this.overlayActive) return;
+    if (this.overlayActive || this.isPauseTransitioning) return;
 
     this.isPaused = !this.isPaused;
     soundManager.playPause();
@@ -994,23 +996,44 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private resumeGameplay(): void {
-    this.isPaused = false;
+    if (this.isPauseTransitioning) return;
 
     if (this.pauseOverlay) {
-      this.pauseOverlay.destroy();
-      this.pauseOverlay = null;
-    }
+      this.isPauseTransitioning = true;
+      const overlay = this.pauseOverlay;
+      const startTime = performance.now();
 
-    this.physics.world.resume();
-    this.time.paused = false;
-    this.tweens.resumeAll();
+      const fadeOut = (now: number) => {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / 100, 1);
+        overlay.setAlpha(1 - progress);
+
+        if (progress < 1) {
+          requestAnimationFrame(fadeOut);
+        } else {
+          overlay.destroy();
+          this.pauseOverlay = null;
+          this.isPauseTransitioning = false;
+          this.isPaused = false;
+          this.physics.world.resume();
+          this.time.paused = false;
+          this.tweens.resumeAll();
+        }
+      };
+      requestAnimationFrame(fadeOut);
+    } else {
+      this.isPaused = false;
+      this.physics.world.resume();
+      this.time.paused = false;
+      this.tweens.resumeAll();
+    }
   }
 
   private createPauseOverlay(): void {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
 
-    this.pauseOverlay = this.add.container(0, 0).setDepth(200);
+    this.pauseOverlay = this.add.container(0, 0).setDepth(200).setAlpha(0);
 
     const background = this.add.rectangle(width / 2, height / 2, width, height, 0x0d041a, 0.75);
     this.pauseOverlay.add(background);
@@ -1073,6 +1096,22 @@ export class PlayScene extends Phaser.Scene {
       color: '#888888'
     }).setOrigin(0.5);
     this.pauseOverlay.add(tipText);
+
+    this.isPauseTransitioning = true;
+    const startTime = performance.now();
+    const fadeIn = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / 200, 1);
+      if (this.pauseOverlay) {
+        this.pauseOverlay.setAlpha(progress);
+      }
+      if (progress < 1) {
+        requestAnimationFrame(fadeIn);
+      } else {
+        this.isPauseTransitioning = false;
+      }
+    };
+    requestAnimationFrame(fadeIn);
   }
 
   // Métodos do Feedback de Energia Crítica (Spec 02)
