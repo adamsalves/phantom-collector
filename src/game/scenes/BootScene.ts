@@ -190,5 +190,18 @@ export class BootScene extends Phaser.Scene {
       }
       this.textures.addCanvas('powerup_phase', canvas);
     }
+
+    // 6. Textura de Faísca Pixel Art (para partículas)
+    if (!this.textures.exists('spark')) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 4;
+      canvas.height = 4;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, 4, 4);
+      }
+      this.textures.addCanvas('spark', canvas);
+    }
   }
 }
