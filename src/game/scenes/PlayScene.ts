@@ -926,7 +926,7 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private getLevelGoal(): number {
-    return Math.min(10 + Math.floor(Math.pow(this.level, 0.7) * 4), 28);
+    return Math.min(10 + Math.floor(Math.pow(Math.max(this.level - 1, 0), 0.75) * 5), 28);
   }
 
   private getEnemyCount(): number {
@@ -938,7 +938,7 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private getEnergyDecay(): number {
-    return Math.min(0.10 + Math.sqrt(this.level) * 0.10, 0.55);
+    return Math.min(0.08 + Math.sqrt(this.level) * 0.10, 0.55);
   }
 
   private getPowerUpDelay(): number {
