@@ -45,6 +45,7 @@ export class PlayScene extends Phaser.Scene {
   // Sistema de Pausa (Spec 03)
   private isPaused: boolean = false;
   private isPauseTransitioning: boolean = false;
+  private pauseStartedAt: number = 0;
   private pauseOverlay: Phaser.GameObjects.Container | null = null;
   private pauseKey!: Phaser.Input.Keyboard.Key;
 
@@ -94,6 +95,7 @@ export class PlayScene extends Phaser.Scene {
     this.nextShakeTime = 0;
     this.isPaused = false;
     this.isPauseTransitioning = false;
+    this.pauseStartedAt = 0;
     this.pauseOverlay = null;
 
     this.energyDecayRate = this.getEnergyDecay();
@@ -402,6 +404,7 @@ export class PlayScene extends Phaser.Scene {
       // Partículas prateadas
       if (this.coinParticles) {
         this.coinParticles.setConfig({
+          frequency: -1,
           tint: 0xc0c0c0,
           scale: { start: 1.5, end: 0 },
           lifespan: 600,
@@ -420,6 +423,7 @@ export class PlayScene extends Phaser.Scene {
       // Partículas coloridas
       if (this.coinParticles) {
         this.coinParticles.setConfig({
+          frequency: -1,
           tint: [0xff007f, 0x00f0ff, 0x39ff14, 0xffd700],
           scale: { start: 2.0, end: 0 },
           lifespan: 700,
@@ -989,6 +993,7 @@ export class PlayScene extends Phaser.Scene {
         this.heartbeatAudio = null;
       }
 
+      this.pauseStartedAt = performance.now();
       this.createPauseOverlay();
     } else {
       this.resumeGameplay();
@@ -1015,6 +1020,7 @@ export class PlayScene extends Phaser.Scene {
           this.pauseOverlay = null;
           this.isPauseTransitioning = false;
           this.isPaused = false;
+          this.advanceCrisisTimers();
           this.physics.world.resume();
           this.time.paused = false;
           this.tweens.resumeAll();
@@ -1023,6 +1029,7 @@ export class PlayScene extends Phaser.Scene {
       requestAnimationFrame(fadeOut);
     } else {
       this.isPaused = false;
+      this.advanceCrisisTimers();
       this.physics.world.resume();
       this.time.paused = false;
       this.tweens.resumeAll();
@@ -1146,6 +1153,15 @@ export class PlayScene extends Phaser.Scene {
       this.heartbeatAudio.stop();
       this.heartbeatAudio = null;
       this.heartbeatBpm = null;
+    }
+  }
+
+  private advanceCrisisTimers(): void {
+    if (this.pauseStartedAt > 0) {
+      const pauseDuration = performance.now() - this.pauseStartedAt;
+      this.nextFlashTime += pauseDuration;
+      this.nextShakeTime += pauseDuration;
+      this.pauseStartedAt = 0;
     }
   }
 
