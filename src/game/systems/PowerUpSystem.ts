@@ -21,6 +21,9 @@ export class PowerUpSystem {
   private powerUpTween: Phaser.Tweens.Tween | null = null;
   private callbacks: PowerUpCallbacks;
 
+  private energyCrisisTriggered: boolean = false;
+  private manyEnemiesTriggered: boolean = false;
+
   constructor(scene: Phaser.Scene, callbacks: PowerUpCallbacks) {
     this.scene = scene;
     this.callbacks = callbacks;
@@ -31,6 +34,8 @@ export class PowerUpSystem {
     this.activeEffect = null;
     this.powerUpTimeLeft = 0;
     this.powerUpTween = null;
+    this.energyCrisisTriggered = false;
+    this.manyEnemiesTriggered = false;
   }
 
   public update(delta: number): void {
@@ -54,21 +59,22 @@ export class PowerUpSystem {
   public checkTriggers(
     energy: number,
     enemyCount: number,
-    coinsInLevel: number,
     hasDropped: boolean
-  ): { type?: PowerUpType; biasA?: PowerUpType; biasB?: PowerUpType } | null {
+  ): { biasA?: PowerUpType; biasB?: PowerUpType } | null {
     if (hasDropped) return null;
 
-    if (energy < 25) {
-      return { biasA: 'shield', biasB: 'speed' };
+    if (energy < 25 && !this.energyCrisisTriggered) {
+      this.energyCrisisTriggered = true;
+      if (Math.random() < 0.7) {
+        return { biasA: 'shield', biasB: 'speed' };
+      }
     }
 
-    if (enemyCount >= 5) {
-      return { biasA: 'phase', biasB: 'speed' };
-    }
-
-    if (coinsInLevel > 0 && coinsInLevel % 3 === 0) {
-      return {};
+    if (enemyCount >= 5 && !this.manyEnemiesTriggered) {
+      this.manyEnemiesTriggered = true;
+      if (Math.random() < 0.6) {
+        return { biasA: 'phase', biasB: 'speed' };
+      }
     }
 
     return null;

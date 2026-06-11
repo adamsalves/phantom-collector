@@ -185,14 +185,11 @@ export class PlayScene extends Phaser.Scene {
     const trigger = this.powerUpSystem.checkTriggers(
       this.energySystem.getEnergy(),
       this.enemySystem.getActiveCount(),
-      this.coinsInLevel,
       !!this.powerUpSystem.getDropped()
     );
 
     if (trigger) {
-      if (trigger.type) {
-        this.powerUpSystem.spawn(trigger.type);
-      } else if (trigger.biasA) {
+      if (trigger.biasA) {
         this.powerUpSystem.spawn(trigger.biasA, trigger.biasB);
       } else {
         this.powerUpSystem.spawn();
@@ -337,6 +334,10 @@ export class PlayScene extends Phaser.Scene {
 
     this.hud.updateScore(this.score);
     this.hud.updateEnergy(this.energySystem.getPercentage(), performance.now());
+
+    if (this.coinsInLevel % 3 === 0 && !this.powerUpSystem.getDropped()) {
+      this.powerUpSystem.spawn();
+    }
 
     const goal = getLevelGoal(this.level);
 
