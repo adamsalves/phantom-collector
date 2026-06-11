@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { GAME } from '../utils/constants';
 import { getEnemyCount, getEnemySpeed } from '../utils/difficulty';
 
 export class EnemySystem {
@@ -51,11 +52,11 @@ export class EnemySystem {
 
       if (level % 5 === 0 && enemy.name === 'stalker') {
         const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, playerX, playerY);
-        this.scene.physics.velocityFromRotation(angle, 110, enemyBody.velocity);
+        this.scene.physics.velocityFromRotation(angle, GAME.ENEMY_CHASE_SPEED, enemyBody.velocity);
       } else {
         if (enemyBody.velocity.length() < 50) {
           const angle = Phaser.Math.Between(0, 360) * (Math.PI / 180);
-          const speed = getEnemySpeed(level);
+          const speed = 100 + level * 20;
           this.scene.physics.velocityFromRotation(angle, speed, enemyBody.velocity);
         }
       }

@@ -11,6 +11,7 @@ export interface ActivePowerUp {
 
 export interface PowerUpCallbacks {
   onCollect: (type: PowerUpType) => void;
+  onDeactivate: (type: PowerUpType) => void;
 }
 
 export class PowerUpSystem {
@@ -158,8 +159,12 @@ export class PowerUpSystem {
   }
 
   private deactivate(): void {
+    const prevType = this.activeEffect;
     this.activeEffect = null;
     this.powerUpTimeLeft = 0;
+    if (prevType) {
+      this.callbacks.onDeactivate(prevType);
+    }
   }
 
   private pickType(biasA?: PowerUpType, biasB?: PowerUpType): PowerUpType {

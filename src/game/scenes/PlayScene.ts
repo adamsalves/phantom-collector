@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME, POWERUP, COMBO } from '../utils/constants';
 import { getLevelGoal, getPowerUpDelay } from '../utils/difficulty';
+import { soundManager } from '../audio/SoundGenerator';
 import { EnergySystem } from '../systems/EnergySystem';
 import { PowerUpSystem, PowerUpType } from '../systems/PowerUpSystem';
 import { EnemySystem } from '../systems/EnemySystem';
@@ -89,7 +90,8 @@ export class PlayScene extends Phaser.Scene {
     this.energySystem.init(this.level);
 
     this.powerUpSystem = new PowerUpSystem(this, {
-      onCollect: (type: PowerUpType) => this.onPowerUpCollected(type)
+      onCollect: (type: PowerUpType) => this.onPowerUpCollected(type),
+      onDeactivate: (type: PowerUpType) => this.onPowerUpDeactivated(type)
     });
     this.powerUpSystem.init();
 
@@ -179,6 +181,7 @@ export class PlayScene extends Phaser.Scene {
 
     if (this.overlayActive) return;
 
+    this.powerUpSystem.update(delta);
     this.handlePlayerMovement();
     this.enemySystem.update(this.level, this.player.x, this.player.y);
 
@@ -355,6 +358,7 @@ export class PlayScene extends Phaser.Scene {
     this.energySystem.takeDamage(GAME.HURT_DAMAGE);
     this.hud.updateEnergy(this.energySystem.getPercentage(), performance.now());
 
+    soundManager.playHurt();
     this.cameras.main.flash(200, 255, 0, 0);
 
     const randomAngle = Phaser.Math.Between(0, 360) * (Math.PI / 180);
@@ -401,6 +405,15 @@ export class PlayScene extends Phaser.Scene {
     }
   }
 
+  private onPowerUpDeactivated(type: PowerUpType): void {
+    if (type === 'phase') {
+      this.player.setCollideWorldBounds(true);
+    }
+    this.player.clearTint();
+    this.player.setAlpha(1);
+    this.hud.updatePowerUp('');
+  }
+
   private applyPowerUpVisuals(): void {
     const effect = this.powerUpSystem.getActiveEffect();
     if (!effect) return;
@@ -427,6 +440,7 @@ export class PlayScene extends Phaser.Scene {
   private triggerLevelComplete(): void {
     this.energySystem.stopHeartbeat();
     this.physics.world.pause();
+    soundManager.playLevelClear();
 
     this.levelOverlay.showComplete(this.level, () => {
       this.scene.start('PlayScene', { score: this.score, level: this.level + 1 });
@@ -436,6 +450,7 @@ export class PlayScene extends Phaser.Scene {
   private triggerGameOver(): void {
     this.energySystem.cleanup();
     this.physics.world.pause();
+    soundManager.playGameOver();
     this.scene.start('GameOverScene', { score: this.score });
   }
 
