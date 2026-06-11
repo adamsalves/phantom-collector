@@ -5,6 +5,7 @@ import { soundManager } from '../audio/SoundGenerator';
 export interface PauseCallbacks {
   onResume: () => void;
   onQuit: () => void;
+  onPause?: () => void;
 }
 
 export class PauseSystem {
@@ -37,6 +38,7 @@ export class PauseSystem {
       this.scene.physics.world.pause();
       this.scene.time.paused = true;
       this.scene.tweens.pauseAll();
+      this.callbacks.onPause?.();
       this.pauseStartedAt = performance.now();
       this.createOverlay();
     } else {

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GAME, POWERUP, COMBO } from '../utils/constants';
-import { getLevelGoal } from '../utils/difficulty';
+import { getLevelGoal, getPowerUpDelay } from '../utils/difficulty';
 import { EnergySystem } from '../systems/EnergySystem';
 import { PowerUpSystem, PowerUpType } from '../systems/PowerUpSystem';
 import { EnemySystem } from '../systems/EnemySystem';
@@ -108,7 +108,8 @@ export class PlayScene extends Phaser.Scene {
 
     this.pauseSystem = new PauseSystem(this, {
       onResume: () => this.onPauseResumed(),
-      onQuit: () => {}
+      onQuit: () => {},
+      onPause: () => this.energySystem.stopHeartbeat()
     });
     this.pauseSystem.init();
 
@@ -129,7 +130,7 @@ export class PlayScene extends Phaser.Scene {
     this.setupColliders();
 
     this.time.addEvent({
-      delay: this.powerUpSystem === null ? POWERUP.SPAWN_INTERVAL_BASE : getLevelGoal(this.level),
+      delay: getPowerUpDelay(this.level),
       callback: () => {
         if (!this.powerUpSystem.getDropped()) this.powerUpSystem.spawn();
       },
