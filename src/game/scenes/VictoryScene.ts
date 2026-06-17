@@ -69,25 +69,33 @@ export class VictoryScene extends Phaser.Scene {
       color: '#39ff14'
     }).setOrigin(0.5).setShadow(0, 0, '#39ff14', 4, true, true);
 
-    // Mensagem de fim de jogo
-    this.add.text(width / 2, height * 0.66, 'YOU COLLECTED THEM ALL!', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '9px',
-      color: '#ffffff'
-    }).setOrigin(0.5);
+    // Mensagem de fim de jogo — aparece após name input
+    const endGameContainer = this.add.container(width / 2, 0);
+    endGameContainer.setAlpha(0);
 
-    this.add.text(width / 2, height * 0.72, 'THE PHANTOM IS FREE.', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '8px',
-      color: '#39ff14'
-    }).setOrigin(0.5);
+    endGameContainer.add(
+      this.add.text(0, height * 0.66, 'YOU COLLECTED THEM ALL!', {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '9px',
+        color: '#ffffff'
+      }).setOrigin(0.5)
+    );
 
-    // Easter egg: pedir mais levels ao dev
-    const trickText = this.add.text(width / 2, height * 0.80, '* ask the dev for more levels *', {
+    endGameContainer.add(
+      this.add.text(0, height * 0.72, 'THE PHANTOM IS FREE.', {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '8px',
+        color: '#39ff14'
+      }).setOrigin(0.5)
+    );
+
+    const trickText = this.add.text(0, height * 0.80, '* ask the dev for more levels *', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '7px',
       color: '#666680'
     }).setOrigin(0.5);
+
+    endGameContainer.add(trickText);
 
     this.tweens.add({
       targets: trickText,
@@ -98,17 +106,11 @@ export class VictoryScene extends Phaser.Scene {
       ease: 'Sine.easeInOut'
     });
 
-    // Salva score se for high score (input customizado dentro do canvas)
-    if (RankingManager.isHighScore(totalScore) && totalScore > 0) {
-      showNameInput(this).then((name) => {
-        if (name !== null) {
-          RankingManager.saveScore(name, totalScore);
-        }
-      });
-    }
+    // Botões — aparecem após name input
+    const buttonsContainer = this.add.container(width / 2, 0);
+    buttonsContainer.setAlpha(0);
 
-    // Botão de Menu Inicial
-    this.menuBtn = this.add.text(width / 2, height * 0.78, 'RETURN TO MAIN MENU', {
+    this.menuBtn = this.add.text(0, height * 0.78, 'RETURN TO MAIN MENU', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '14px',
       color: '#ff007f'
@@ -116,7 +118,6 @@ export class VictoryScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .setShadow(0, 0, '#ff007f', 6, true, true);
 
-    // Efeito de pulso no botão
     this.tweens.add({
       targets: this.menuBtn,
       alpha: { from: 1, to: 0.4 },
@@ -125,7 +126,6 @@ export class VictoryScene extends Phaser.Scene {
       repeat: -1
     });
 
-    // Eventos do botão
     this.menuBtn.on('pointerdown', () => {
       soundManager.playPowerup();
       this.scene.start('MenuScene');
@@ -141,8 +141,7 @@ export class VictoryScene extends Phaser.Scene {
       this.menuBtn.setShadow(0, 0, '#ff007f', 6, true, true);
     });
 
-    // Botão de High Scores
-    this.rankingBtn = this.add.text(width / 2, height * 0.86, 'VIEW HIGH SCORES', {
+    this.rankingBtn = this.add.text(0, height * 0.86, 'VIEW HIGH SCORES', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '11px',
       color: '#ffd700'
@@ -164,6 +163,29 @@ export class VictoryScene extends Phaser.Scene {
       this.rankingBtn.setColor('#ffd700');
       this.rankingBtn.setShadow(0, 0, '#ffd700', 4, true, true);
     });
+
+    buttonsContainer.add([this.menuBtn, this.rankingBtn]);
+
+    // Fluxo: name input (se high score) -> fim de jogo + botões
+    const showEndScreen = (): void => {
+      this.tweens.add({
+        targets: [endGameContainer, buttonsContainer],
+        alpha: 1,
+        duration: 800,
+        ease: 'Sine.easeIn'
+      });
+    };
+
+    if (RankingManager.isHighScore(totalScore) && totalScore > 0) {
+      showNameInput(this).then((name) => {
+        if (name !== null) {
+          RankingManager.saveScore(name, totalScore);
+        }
+        showEndScreen();
+      });
+    } else {
+      showEndScreen();
+    }
   }
 
   private createRetroConfetti(width: number, height: number): void {
