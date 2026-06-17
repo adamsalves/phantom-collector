@@ -56,7 +56,7 @@ export class EnemySystem {
       } else {
         if (enemyBody.velocity.length() < 50) {
           const angle = Phaser.Math.Between(0, 360) * (Math.PI / 180);
-          const speed = 100 + level * 20;
+          const speed = getEnemySpeed(level);
           this.scene.physics.velocityFromRotation(angle, speed, enemyBody.velocity);
         }
       }

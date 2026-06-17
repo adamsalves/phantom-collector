@@ -9,6 +9,7 @@ export const GAME = {
   WORLD_BOUNDS_TOP: 50,
   GRID_SIZE_X: 40,
   GRID_SIZE_Y: 40,
+  MAX_LEVEL: 50,
 } as const;
 
 export const POWERUP = {

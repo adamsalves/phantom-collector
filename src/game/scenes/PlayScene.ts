@@ -62,6 +62,12 @@ export class PlayScene extends Phaser.Scene {
     this.coinsInLevel = 0;
     this.comboCount = 0;
     this.lastCoinTime = 0;
+
+    this.isHurtInvincible = false;
+    if (this.hurtInvincibleTimer) {
+      this.hurtInvincibleTimer.destroy();
+      this.hurtInvincibleTimer = null;
+    }
   }
 
   public create(): void {
@@ -156,7 +162,7 @@ export class PlayScene extends Phaser.Scene {
 
     this.physics.add.overlap(this.player, this.enemySystem.getGroup(), () => {
       if (!this.powerUpSystem.hasActive() || this.powerUpSystem.getActiveEffect() !== 'shield') {
-        if (!(this as unknown as Record<string, boolean>).isHurtInvincible) {
+        if (!this.isHurtInvincible) {
           this.handlePlayerHurt();
         }
       }
@@ -169,7 +175,7 @@ export class PlayScene extends Phaser.Scene {
   public update(_time: number, delta: number): void {
     if (this.pauseSystem.isActive()) return;
 
-    if (this.energySystem.getEnergy() > 0 && !this.overlayActive) {
+    if (!this.overlayActive) {
       const alive = this.energySystem.update(_time, delta);
       this.hud.updateEnergy(this.energySystem.getPercentage(), _time);
 
@@ -440,11 +446,18 @@ export class PlayScene extends Phaser.Scene {
   private triggerLevelComplete(): void {
     this.energySystem.stopHeartbeat();
     this.physics.world.pause();
+    this.overlayActive = true;
     soundManager.playLevelClear();
 
-    this.levelOverlay.showComplete(this.level, () => {
-      this.scene.start('PlayScene', { score: this.score, level: this.level + 1 });
-    });
+    if (this.level >= GAME.MAX_LEVEL) {
+      this.levelOverlay.showComplete(this.level, () => {
+        this.scene.start('VictoryScene', { score: this.score });
+      });
+    } else {
+      this.levelOverlay.showComplete(this.level, () => {
+        this.scene.start('PlayScene', { score: this.score, level: this.level + 1 });
+      });
+    }
   }
 
   private triggerGameOver(): void {
@@ -469,6 +482,12 @@ export class PlayScene extends Phaser.Scene {
     this.levelOverlay.cleanup();
     this.coinSystem.cleanup();
     this.powerUpSystem.cleanup();
+    this.enemySystem.cleanup();
+
+    if (this.hurtInvincibleTimer) {
+      this.hurtInvincibleTimer.destroy();
+      this.hurtInvincibleTimer = null;
+    }
 
     if (this.pauseKey) {
       this.pauseKey.removeAllListeners();
