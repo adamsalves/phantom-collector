@@ -69,12 +69,34 @@ export class VictoryScene extends Phaser.Scene {
       color: '#39ff14'
     }).setOrigin(0.5).setShadow(0, 0, '#39ff14', 4, true, true);
 
-    // Frase clássica de encerramento estilo arcade
-    this.add.text(width / 2, height * 0.68, 'CONGRATULATIONS! YOU ARE THE SUPREME COLLECTOR!', {
+    // Mensagem de fim de jogo
+    this.add.text(width / 2, height * 0.66, 'YOU COLLECTED THEM ALL!', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '8px',
+      fontSize: '9px',
       color: '#ffffff'
     }).setOrigin(0.5);
+
+    this.add.text(width / 2, height * 0.72, 'THE PHANTOM IS FREE.', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '8px',
+      color: '#39ff14'
+    }).setOrigin(0.5);
+
+    // Easter egg: pedir mais levels ao dev
+    const trickText = this.add.text(width / 2, height * 0.80, '* ask the dev for more levels *', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '7px',
+      color: '#666680'
+    }).setOrigin(0.5);
+
+    this.tweens.add({
+      targets: trickText,
+      alpha: { from: 0.3, to: 1 },
+      duration: 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
 
     // Salva score se for high score (input customizado dentro do canvas)
     if (RankingManager.isHighScore(totalScore) && totalScore > 0) {
