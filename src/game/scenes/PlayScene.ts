@@ -74,6 +74,7 @@ export class PlayScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
 
+    this.physics.world.resume();
     this.physics.world.setBounds(0, GAME.WORLD_BOUNDS_TOP, width, height - GAME.WORLD_BOUNDS_TOP);
 
     this.add.grid(width / 2, height / 2 + 25, width, height - 50, GAME.GRID_SIZE_X, GAME.GRID_SIZE_Y, 0x1a0933, 0.5, 0x2d124d, 0.3);
