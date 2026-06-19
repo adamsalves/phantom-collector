@@ -14,6 +14,8 @@ dist/
 *.pem
 *.bak
 
+.kilo/
+
 # IDEs and editors
 .idea/
 .vscode/
