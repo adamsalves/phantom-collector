@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { soundManager } from '../audio/SoundGenerator';
+import { THEME } from '../utils/theme';
 
 export class MenuScene extends Phaser.Scene {
   private startBtn!: Phaser.GameObjects.Text;
@@ -20,20 +21,20 @@ export class MenuScene extends Phaser.Scene {
     this.add.text(width / 2, height / 3, 'PHANTOM', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '46px',
-      color: '#00f0ff'
-    }).setOrigin(0.5).setShadow(0, 0, '#ff007f', 10, true, true);
+      color: THEME.colors.primary.hex
+    }).setOrigin(0.5).setShadow(0, 0, THEME.colors.accent.hex, 10, true, true);
 
     this.add.text(width / 2, height / 3 + 50, 'THE COLLECTOR', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '20px',
-      color: '#ff007f'
-    }).setOrigin(0.5).setShadow(0, 0, '#00f0ff', 6, true, true);
+      color: THEME.colors.accent.hex
+    }).setOrigin(0.5).setShadow(0, 0, THEME.colors.primary.hex, 6, true, true);
 
     // Instruções Retro
     this.add.text(width / 2, height * 0.6, 'USE ARROW KEYS TO MOVE\nCOLLECT GOLD TO SURVIVE\nAVOID THE GHOSTS!', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '12px',
-      color: '#ffffff',
+      color: THEME.colors.neutral.white.hex,
       align: 'center',
       lineSpacing: 10
     }).setOrigin(0.5);
@@ -42,10 +43,10 @@ export class MenuScene extends Phaser.Scene {
     this.startBtn = this.add.text(width / 2, height * 0.78, 'INSERT COIN / START', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '16px',
-      color: '#39ff14'
+      color: THEME.colors.success.hex
     }).setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
-      .setShadow(0, 0, '#39ff14', 5, true, true);
+      .setShadow(0, 0, THEME.colors.success.hex, 5, true, true);
 
     // Efeito de pulso no texto START
     this.tweens.add({
@@ -63,23 +64,23 @@ export class MenuScene extends Phaser.Scene {
     });
 
     this.startBtn.on('pointerover', () => {
-      this.startBtn.setColor('#ff007f');
-      this.startBtn.setShadow(0, 0, '#ff007f', 12, true, true);
+      this.startBtn.setColor(THEME.colors.accent.hex);
+      this.startBtn.setShadow(0, 0, THEME.colors.accent.hex, 12, true, true);
     });
 
     this.startBtn.on('pointerout', () => {
-      this.startBtn.setColor('#39ff14');
-      this.startBtn.setShadow(0, 0, '#39ff14', 5, true, true);
+      this.startBtn.setColor(THEME.colors.success.hex);
+      this.startBtn.setShadow(0, 0, THEME.colors.success.hex, 5, true, true);
     });
 
     // Botão de High Scores
     this.highScoresBtn = this.add.text(width / 2, height * 0.88, 'HIGH SCORES', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '12px',
-      color: '#ffd700'
+      color: THEME.colors.warning.hex
     }).setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
-      .setShadow(0, 0, '#ffd700', 4, true, true);
+      .setShadow(0, 0, THEME.colors.warning.hex, 4, true, true);
 
     this.highScoresBtn.on('pointerdown', () => {
       soundManager.playPowerup();
@@ -87,19 +88,19 @@ export class MenuScene extends Phaser.Scene {
     });
 
     this.highScoresBtn.on('pointerover', () => {
-      this.highScoresBtn.setColor('#00f0ff');
-      this.highScoresBtn.setShadow(0, 0, '#00f0ff', 10, true, true);
+      this.highScoresBtn.setColor(THEME.colors.primary.hex);
+      this.highScoresBtn.setShadow(0, 0, THEME.colors.primary.hex, 10, true, true);
     });
 
     this.highScoresBtn.on('pointerout', () => {
-      this.highScoresBtn.setColor('#ffd700');
-      this.highScoresBtn.setShadow(0, 0, '#ffd700', 4, true, true);
+      this.highScoresBtn.setColor(THEME.colors.warning.hex);
+      this.highScoresBtn.setShadow(0, 0, THEME.colors.warning.hex, 4, true, true);
     });
   }
 
   private createRetroGrid(width: number, height: number): void {
     const graphics = this.add.graphics();
-    graphics.lineStyle(1, 0x2d124d, 0.4);
+    graphics.lineStyle(1, THEME.colors.backgroundAlt.int, 0.4);
 
     // Linhas verticais
     for (let x = 0; x < width; x += 30) {

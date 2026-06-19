@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { soundManager } from '../audio/SoundGenerator';
 import { RankingManager } from '../ranking/RankingManager';
 import { showNameInput } from '../ranking/NameInput';
+import { THEME } from '../utils/theme';
 
 interface GameOverData {
   score: number;
@@ -25,14 +26,14 @@ export class GameOverScene extends Phaser.Scene {
     const height = this.cameras.main.height;
 
     // Fundo de Grid sutil avermelhado (Dano/Derrota)
-    this.add.grid(width / 2, height / 2, width, height, 40, 40, 0x1a0933, 0.4, 0xff0055, 0.15);
+    this.add.grid(width / 2, height / 2, width, height, 40, 40, THEME.colors.grid.int, 0.4, THEME.colors.danger.int, 0.15);
 
     // Título Principal Game Over piscando em vermelho neon
     const titleText = this.add.text(width / 2, height / 3, 'GAME OVER', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '44px',
-      color: '#ff0055'
-    }).setOrigin(0.5).setShadow(0, 0, '#ff0055', 12, true, true);
+      color: THEME.colors.danger.hex
+    }).setOrigin(0.5).setShadow(0, 0, THEME.colors.danger.hex, 12, true, true);
 
     // Efeito de pulso trêmulo retrô no título
     this.tweens.add({
@@ -48,7 +49,7 @@ export class GameOverScene extends Phaser.Scene {
     this.add.text(width / 2, height / 2, `FINAL SCORE: ${this.finalScore}`, {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '18px',
-      color: '#ffffff'
+      color: THEME.colors.neutral.white.hex
     }).setOrigin(0.5);
 
     // Salva score se for high score (input customizado dentro do canvas)
@@ -64,17 +65,17 @@ export class GameOverScene extends Phaser.Scene {
     this.add.text(width / 2, height * 0.6, 'YOUR ENERGY SPIRIT HAS FADED...', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '10px',
-      color: '#ff007f'
+      color: THEME.colors.accent.hex
     }).setOrigin(0.5);
 
     // Botão de Reinício
     this.retryBtn = this.add.text(width / 2, height * 0.78, 'TRY AGAIN / CONTINUE', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '16px',
-      color: '#00f0ff'
+      color: THEME.colors.primary.hex
     }).setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
-      .setShadow(0, 0, '#00f0ff', 6, true, true);
+      .setShadow(0, 0, THEME.colors.primary.hex, 6, true, true);
 
     // Efeito de pulso no botão
     this.tweens.add({
@@ -92,23 +93,23 @@ export class GameOverScene extends Phaser.Scene {
     });
 
     this.retryBtn.on('pointerover', () => {
-      this.retryBtn.setColor('#ff007f');
-      this.retryBtn.setShadow(0, 0, '#ff007f', 12, true, true);
+      this.retryBtn.setColor(THEME.colors.accent.hex);
+      this.retryBtn.setShadow(0, 0, THEME.colors.accent.hex, 12, true, true);
     });
 
     this.retryBtn.on('pointerout', () => {
-      this.retryBtn.setColor('#00f0ff');
-      this.retryBtn.setShadow(0, 0, '#00f0ff', 6, true, true);
+      this.retryBtn.setColor(THEME.colors.primary.hex);
+      this.retryBtn.setShadow(0, 0, THEME.colors.primary.hex, 6, true, true);
     });
 
     // Botão de High Scores
     this.rankingBtn = this.add.text(width / 2, height * 0.88, 'VIEW HIGH SCORES', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '11px',
-      color: '#ffd700'
+      color: THEME.colors.warning.hex
     }).setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
-      .setShadow(0, 0, '#ffd700', 4, true, true);
+      .setShadow(0, 0, THEME.colors.warning.hex, 4, true, true);
 
     this.rankingBtn.on('pointerdown', () => {
       soundManager.playPowerup();
@@ -116,13 +117,13 @@ export class GameOverScene extends Phaser.Scene {
     });
 
     this.rankingBtn.on('pointerover', () => {
-      this.rankingBtn.setColor('#00f0ff');
-      this.rankingBtn.setShadow(0, 0, '#00f0ff', 10, true, true);
+      this.rankingBtn.setColor(THEME.colors.primary.hex);
+      this.rankingBtn.setShadow(0, 0, THEME.colors.primary.hex, 10, true, true);
     });
 
     this.rankingBtn.on('pointerout', () => {
-      this.rankingBtn.setColor('#ffd700');
-      this.rankingBtn.setShadow(0, 0, '#ffd700', 4, true, true);
+      this.rankingBtn.setColor(THEME.colors.warning.hex);
+      this.rankingBtn.setShadow(0, 0, THEME.colors.warning.hex, 4, true, true);
     });
   }
 }

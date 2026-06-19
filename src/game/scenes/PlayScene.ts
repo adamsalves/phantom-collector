@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME, POWERUP, COMBO } from '../utils/constants';
+import { THEME } from '../utils/theme';
 import { getLevelGoal, getPowerUpDelay } from '../utils/difficulty';
 import { soundManager } from '../audio/SoundGenerator';
 import { EnergySystem } from '../systems/EnergySystem';
@@ -70,7 +71,7 @@ export class PlayScene extends Phaser.Scene {
 
     this.physics.world.setBounds(0, GAME.WORLD_BOUNDS_TOP, width, height - GAME.WORLD_BOUNDS_TOP);
 
-    this.add.grid(width / 2, height / 2 + 25, width, height - 50, GAME.GRID_SIZE_X, GAME.GRID_SIZE_Y, 0x1a0933, 0.5, 0x2d124d, 0.3);
+    this.add.grid(width / 2, height / 2 + 25, width, height - 50, GAME.GRID_SIZE_X, GAME.GRID_SIZE_Y, THEME.colors.grid.int, 0.5, THEME.colors.backgroundAlt.int, 0.3);
 
     this.player = this.physics.add.sprite(width / 2, height / 2, 'player');
     this.player.setCollideWorldBounds(true);
@@ -156,7 +157,7 @@ export class PlayScene extends Phaser.Scene {
 
     this.physics.add.overlap(this.player, this.enemySystem.getGroup(), () => {
       if (!this.powerUpSystem.hasActive() || this.powerUpSystem.getActiveEffect() !== 'shield') {
-        if (!(this as unknown as Record<string, boolean>).isHurtInvincible) {
+      if (!this.isHurtInvincible) {
           this.handlePlayerHurt();
         }
       }
@@ -281,6 +282,7 @@ export class PlayScene extends Phaser.Scene {
 
   private handlePhaseWrap(): void {
     const { width, height } = this.cameras.main;
+    const bottomPadding = GAME.WORLD_BOUND_BOTTOM_PADDING;
 
     if (this.player.x < -16) {
       this.player.x = width + 16;
@@ -288,10 +290,10 @@ export class PlayScene extends Phaser.Scene {
       this.player.x = -16;
     }
 
-    if (this.player.y < 34) {
+    if (this.player.y < bottomPadding) {
       this.player.y = height + 16;
     } else if (this.player.y > height + 16) {
-      this.player.y = 34;
+      this.player.y = bottomPadding;
     }
   }
 

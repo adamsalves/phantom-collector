@@ -92,12 +92,15 @@ export function showNameInput(scene: Phaser.Scene): Promise<string | null> {
       scene.physics.world?.pause();
     }
 
-    container.on('destroy', () => {
+    const cleanup = () => {
       cursorTween.stop();
       scene.input.keyboard?.off('keydown', handler);
       if (!originalPause) {
         scene.physics.world?.resume();
       }
-    });
+    };
+
+    container.on('destroy', cleanup);
+    scene.events.once('shutdown', cleanup);
   });
 }

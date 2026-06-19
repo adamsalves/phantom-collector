@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { getScenarioName, getLevelGoal } from '../utils/difficulty';
+import { THEME } from '../utils/theme';
 
 export interface LevelOverlayCallbacks {
   onComplete: () => void;
@@ -24,12 +25,12 @@ export class LevelOverlay {
     this.active = true;
     this.scene.physics.world.pause();
 
-    this.overlay = this.scene.add.rectangle(width / 2, height / 2, width, height, 0x0d041a, 0.9);
+    this.overlay = this.scene.add.rectangle(width / 2, height / 2, width, height, THEME.colors.background.int, 0.9);
 
     const text1 = this.scene.add.text(width / 2, height / 2 - 30, `LEVEL ${level}`, {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '24px',
-      color: '#00f0ff'
+      color: THEME.colors.primary.hex
     }).setOrigin(0.5);
     this.texts.push(text1);
 
@@ -37,7 +38,7 @@ export class LevelOverlay {
     const text2 = this.scene.add.text(width / 2, height / 2 + 10, scenarioName, {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '12px',
-      color: '#ff007f'
+      color: THEME.colors.accent.hex
     }).setOrigin(0.5);
     this.texts.push(text2);
 
@@ -45,7 +46,7 @@ export class LevelOverlay {
     const text3 = this.scene.add.text(width / 2, height / 2 + 50, `GOAL: COLLECT ${goal} COINS`, {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '10px',
-      color: '#ffffff'
+      color: THEME.colors.neutral.white.hex
     }).setOrigin(0.5);
     this.texts.push(text3);
 
@@ -62,18 +63,18 @@ export class LevelOverlay {
 
     this.active = true;
 
-    const bg = this.scene.add.rectangle(width / 2, height / 2, width, height, 0x0d041a, 0.9);
+    const bg = this.scene.add.rectangle(width / 2, height / 2, width, height, THEME.colors.background.int, 0.9);
 
     const text1 = this.scene.add.text(width / 2, height / 2 - 20, 'LEVEL COMPLETE!', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '22px',
-      color: '#39ff14'
+      color: THEME.colors.success.hex
     }).setOrigin(0.5);
 
     const text2 = this.scene.add.text(width / 2, height / 2 + 20, `GET READY FOR LEVEL ${level + 1}`, {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '10px',
-      color: '#00f0ff'
+      color: THEME.colors.primary.hex
     }).setOrigin(0.5);
 
     this.scene.time.delayedCall(1500, () => {
