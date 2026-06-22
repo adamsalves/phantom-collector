@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { getCoinValue, getCoinEnergy, pickCoinType } from '../utils/coinHelper';
 import { soundManager } from '../audio/SoundGenerator';
+import { THEME } from '../utils/theme';
 
 export type CoinType = 'gold' | 'silver' | 'rainbow';
 
@@ -97,7 +98,7 @@ export class CoinSystem {
 
   private setupVisuals(): void {
     if (this.coinType === 'gold') {
-      this.coin.setTint(0xffd700);
+      this.coin.setTint(THEME.colors.warning.int);
 
       this.scene.tweens.add({
         targets: this.coin,
@@ -108,7 +109,7 @@ export class CoinSystem {
         ease: 'Sine.easeInOut'
       });
     } else if (this.coinType === 'silver') {
-      this.coin.setTint(0xc0c0c0);
+      this.coin.setTint(THEME.colors.neutral.silver.int);
 
       this.scene.tweens.add({
         targets: this.coin,
@@ -158,7 +159,7 @@ export class CoinSystem {
           scale: { start: 1.2, end: 0 },
           lifespan: 500,
           speed: { min: 20, max: 50 },
-          tint: [0xff007f, 0x00f0ff, 0x39ff14, 0xffd700]
+          tint: [THEME.colors.accent.int, THEME.colors.primary.int, THEME.colors.success.int, THEME.colors.warning.int]
         });
         this.coinParticles.start();
       }
@@ -178,7 +179,7 @@ export class CoinSystem {
       if (this.coinParticles) {
         this.coinParticles.setConfig({
           frequency: -1,
-          tint: 0xc0c0c0,
+          tint: THEME.colors.neutral.silver.int,
           scale: { start: 1.5, end: 0 },
           lifespan: 600,
           speed: { min: 40, max: 120 }
@@ -192,7 +193,7 @@ export class CoinSystem {
       if (this.coinParticles) {
         this.coinParticles.setConfig({
           frequency: -1,
-          tint: [0xff007f, 0x00f0ff, 0x39ff14, 0xffd700],
+          tint: [THEME.colors.accent.int, THEME.colors.primary.int, THEME.colors.success.int, THEME.colors.warning.int],
           scale: { start: 2.0, end: 0 },
           lifespan: 700,
           speed: { min: 60, max: 150 }
@@ -208,14 +209,10 @@ export class CoinSystem {
     return this.coin;
   }
 
-  public getCoinType(): CoinType {
-    return this.coinType;
-  }
-
   public getFloatyColor(): string {
-    if (this.coinType === 'silver') return '#c0c0c0';
-    if (this.coinType === 'rainbow') return '#00f0ff';
-    return '#ffd700';
+    if (this.coinType === 'silver') return THEME.colors.neutral.silver.hex;
+    if (this.coinType === 'rainbow') return THEME.colors.primary.hex;
+    return THEME.colors.warning.hex;
   }
 
   public getPlayerScale(): number {

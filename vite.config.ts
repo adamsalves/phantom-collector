@@ -7,6 +7,14 @@ export default defineConfig({
   },
   build: {
     assetsInlineLimit: 0, // Garante que spritesheets não sejam inlined como base64
-    outDir: 'dist'
+    chunkSizeWarningLimit: 1600,
+    outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          phaser: ['phaser']
+        }
+      }
+    }
   }
 });

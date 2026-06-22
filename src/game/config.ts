@@ -5,12 +5,14 @@ import { PlayScene } from './scenes/PlayScene';
 import { GameOverScene } from './scenes/GameOverScene';
 import { VictoryScene } from './scenes/VictoryScene';
 import { RankingScene } from './scenes/RankingScene';
+import { GAME } from './utils/constants';
+import { THEME } from './utils/theme';
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  width: 700,
-  height: 400,
-  backgroundColor: '#0d041a',
+  width: GAME.WIDTH,
+  height: GAME.HEIGHT,
+  backgroundColor: THEME.colors.background.hex,
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
@@ -18,8 +20,7 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { x: 0, y: 0 },
-      debug: false
+      gravity: { x: 0, y: 0 }
     }
   },
   parent: 'game-canvas',

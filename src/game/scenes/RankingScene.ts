@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { RankingManager, RankingEntry } from '../ranking/RankingManager';
 import { soundManager } from '../audio/SoundGenerator';
+import { THEME } from '../utils/theme';
 
 interface RankingSceneData {
   highlightScore?: number;
@@ -27,8 +28,8 @@ export class RankingScene extends Phaser.Scene {
     this.add.text(width / 2, 30, 'HIGH SCORES', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '22px',
-      color: '#ffd700'
-    }).setOrigin(0.5).setShadow(0, 0, '#ffd700', 6, true, true);
+      color: THEME.colors.warning.hex
+    }).setOrigin(0.5).setShadow(0, 0, THEME.colors.warning.hex, 6, true, true);
 
     const entries = RankingManager.getScores();
 
@@ -36,7 +37,7 @@ export class RankingScene extends Phaser.Scene {
       this.add.text(width / 2, height / 2, 'NO SCORES YET', {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: '14px',
-        color: '#666666'
+        color: THEME.colors.neutral.muted.hex
       }).setOrigin(0.5);
     } else {
       this.renderRankingEntries(entries, width);
@@ -45,10 +46,10 @@ export class RankingScene extends Phaser.Scene {
     this.backBtn = this.add.text(width / 2, height - 30, 'BACK TO MENU', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '14px',
-      color: '#ff007f'
+      color: THEME.colors.accent.hex
     }).setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
-      .setShadow(0, 0, '#ff007f', 6, true, true);
+      .setShadow(0, 0, THEME.colors.accent.hex, 6, true, true);
 
     this.tweens.add({
       targets: this.backBtn,
@@ -64,13 +65,13 @@ export class RankingScene extends Phaser.Scene {
     });
 
     this.backBtn.on('pointerover', () => {
-      this.backBtn.setColor('#00f0ff');
-      this.backBtn.setShadow(0, 0, '#00f0ff', 12, true, true);
+      this.backBtn.setColor(THEME.colors.primary.hex);
+      this.backBtn.setShadow(0, 0, THEME.colors.primary.hex, 12, true, true);
     });
 
     this.backBtn.on('pointerout', () => {
-      this.backBtn.setColor('#ff007f');
-      this.backBtn.setShadow(0, 0, '#ff007f', 6, true, true);
+      this.backBtn.setColor(THEME.colors.accent.hex);
+      this.backBtn.setShadow(0, 0, THEME.colors.accent.hex, 6, true, true);
     });
   }
 
@@ -81,7 +82,7 @@ export class RankingScene extends Phaser.Scene {
     for (let i = 0; i < 10; i++) {
       const y = startY + i * rowHeight;
       const isHighlight = this.highlightScore > 0 && entries[i] && entries[i].score === this.highlightScore;
-      const color = isHighlight ? '#00f0ff' : (entries[i] ? '#ffffff' : '#444444');
+      const color = isHighlight ? THEME.colors.primary.hex : (entries[i] ? THEME.colors.neutral.white.hex : THEME.colors.neutral.dark.hex);
 
       const rank = `#${String(i + 1).padStart(2, '0')}.`;
       const name = entries[i] ? entries[i].name.padEnd(12, ' ') : '---'.padEnd(12, ' ');
@@ -97,7 +98,7 @@ export class RankingScene extends Phaser.Scene {
 
   private createRetroGrid(width: number, height: number): void {
     const graphics = this.add.graphics();
-    graphics.lineStyle(1, 0x2d124d, 0.4);
+    graphics.lineStyle(1, THEME.colors.backgroundAlt.int, 0.4);
 
     for (let x = 0; x < width; x += 30) {
       graphics.lineBetween(x, 0, x, height);

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { THEME } from '../utils/theme';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -13,13 +14,13 @@ export class BootScene extends Phaser.Scene {
     const loadingText = this.add.text(width / 2, height / 2 - 20, 'LOADING SYSTEM...', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '18px',
-      color: '#00f0ff'
+      color: THEME.colors.primary.hex
     }).setOrigin(0.5);
 
     const percentText = this.add.text(width / 2, height / 2 + 20, '0%', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '14px',
-      color: '#ff007f'
+      color: THEME.colors.accent.hex
     }).setOrigin(0.5);
 
     this.load.on('progress', (value: number) => {
@@ -35,7 +36,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('player', 'assets/player.png');
     this.load.image('coin', 'assets/coin.png');
     
-    // Assets auxiliares para efeitos de luz ou powerups desenhados programmaticamente
+    // Assets auxiliares para efeitos de luz ou powerups desenhados programaticamente
     // Criaremos texturas em runtime se precisarmos para evitar links estáticos quebrados
   }
 
@@ -60,8 +61,8 @@ export class BootScene extends Phaser.Scene {
       const ctx = canvas.getContext('2d');
       if (ctx) {
         // Corpo fantasmagórico / Alienígena neon
-        ctx.fillStyle = '#ff0055';
-        ctx.shadowColor = '#ff0055';
+        ctx.fillStyle = THEME.colors.danger.hex;
+        ctx.shadowColor = THEME.colors.danger.hex;
         ctx.shadowBlur = 8;
         
         // Desenha um triângulo assustador estilizado retro
@@ -76,8 +77,8 @@ export class BootScene extends Phaser.Scene {
         ctx.fill();
 
         // Olhos brilhantes neon ciano
-        ctx.fillStyle = '#00f0ff';
-        ctx.shadowColor = '#00f0ff';
+        ctx.fillStyle = THEME.colors.primary.hex;
+        ctx.shadowColor = THEME.colors.primary.hex;
         ctx.shadowBlur = 4;
         ctx.fillRect(8, 12, 4, 4);
         ctx.fillRect(20, 12, 4, 4);
@@ -92,8 +93,8 @@ export class BootScene extends Phaser.Scene {
       canvas.height = 24;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.fillStyle = '#00f0ff';
-        ctx.shadowColor = '#00f0ff';
+        ctx.fillStyle = THEME.colors.primary.hex;
+        ctx.shadowColor = THEME.colors.primary.hex;
         ctx.shadowBlur = 6;
         
         // Raio retrô estilizado
@@ -117,8 +118,8 @@ export class BootScene extends Phaser.Scene {
       canvas.height = 24;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.fillStyle = '#ff007f';
-        ctx.shadowColor = '#ff007f';
+        ctx.fillStyle = THEME.colors.accent.hex;
+        ctx.shadowColor = THEME.colors.accent.hex;
         ctx.shadowBlur = 6;
         
         // Escudo estilizado retro
@@ -134,15 +135,15 @@ export class BootScene extends Phaser.Scene {
       this.textures.addCanvas('powerup_shield', canvas);
     }
 
-    // 4. Textura do Power-Up de Ímã (Magnet - Amarelo brilhante)
+    // 4. Textura do Power-Up de Ímã (Magnet - Verde neon)
     if (!this.textures.exists('powerup_magnet')) {
       const canvas = document.createElement('canvas');
       canvas.width = 24;
       canvas.height = 24;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.fillStyle = '#39ff14';
-        ctx.shadowColor = '#39ff14';
+        ctx.fillStyle = THEME.colors.success.hex;
+        ctx.shadowColor = THEME.colors.success.hex;
         ctx.shadowBlur = 6;
         
         // Ferradura/Ímã estilizado retro
@@ -167,8 +168,8 @@ export class BootScene extends Phaser.Scene {
       canvas.height = 24;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.fillStyle = '#aa00ff';
-        ctx.shadowColor = '#aa00ff';
+        ctx.fillStyle = THEME.colors.phase.hex;
+        ctx.shadowColor = THEME.colors.phase.hex;
         ctx.shadowBlur = 8;
 
         // Fantasma/Portal estilizado retro
@@ -183,7 +184,7 @@ export class BootScene extends Phaser.Scene {
         ctx.fill();
 
         // Olhos brilhantes
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = THEME.colors.neutral.white.hex;
         ctx.shadowBlur = 2;
         ctx.fillRect(9, 6, 3, 4);
         ctx.fillRect(14, 6, 3, 4);
@@ -198,7 +199,7 @@ export class BootScene extends Phaser.Scene {
       canvas.height = 4;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = THEME.colors.neutral.white.hex;
         ctx.fillRect(0, 0, 4, 4);
       }
       this.textures.addCanvas('spark', canvas);
