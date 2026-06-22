@@ -41,7 +41,7 @@ export class PowerUpSystem {
 
   public update(delta: number): void {
     if (this.activeEffect && this.powerUpTimeLeft > 0) {
-      this.powerUpTimeLeft -= delta / 1000;
+      this.powerUpTimeLeft -= delta;
 
       if (this.powerUpTimeLeft <= 0) {
         this.deactivate();
