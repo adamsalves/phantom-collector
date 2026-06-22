@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME, POWERUP, COMBO } from '../utils/constants';
 import { THEME } from '../utils/theme';
+import { phaseWrap } from '../utils/phaseWrap';
 import { getLevelGoal, getPowerUpDelay } from '../utils/difficulty';
 import { soundManager } from '../audio/SoundGenerator';
 import { EnergySystem } from '../systems/EnergySystem';
@@ -19,38 +20,32 @@ interface PlaySceneData {
 }
 
 export class PlayScene extends Phaser.Scene {
-  // Entities
   private player!: Phaser.Physics.Arcade.Sprite;
 
-  // Systems
   private energySystem!: EnergySystem;
   private powerUpSystem!: PowerUpSystem;
   private enemySystem!: EnemySystem;
   private coinSystem!: CoinSystem;
   private pauseSystem!: PauseSystem;
 
-  // Components
   private hud!: HUD;
   private speedTrail!: SpeedTrail;
   private levelOverlay!: LevelOverlay;
 
-  // State
   private score: number = 0;
   private level: number = 1;
   private overlayActive: boolean = true;
   private coinsInLevel: number = 0;
-
-  // Combo
   private comboCount: number = 0;
   private lastCoinTime: number = 0;
 
-  // Input
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-  private wasdKeys!: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key };
+  private wasdKeys: Record<string, Phaser.Input.Keyboard.Key> = {};
   private pauseKey!: Phaser.Input.Keyboard.Key;
 
-  // Constants
   private playerBaseSpeed: number = GAME.PLAYER_BASE_SPEED;
+  private isHurtInvincible: boolean = false;
+  private hurtInvincibleTimer: Phaser.Time.TimerEvent | null = null;
 
   constructor() {
     super('PlayScene');
@@ -63,6 +58,8 @@ export class PlayScene extends Phaser.Scene {
     this.coinsInLevel = 0;
     this.comboCount = 0;
     this.lastCoinTime = 0;
+    this.hurtInvincibleTimer?.destroy();
+    this.hurtInvincibleTimer = null;
   }
 
   public create(): void {
@@ -70,7 +67,6 @@ export class PlayScene extends Phaser.Scene {
     const height = this.cameras.main.height;
 
     this.physics.world.setBounds(0, GAME.WORLD_BOUNDS_TOP, width, height - GAME.WORLD_BOUNDS_TOP);
-
     this.add.grid(width / 2, height / 2 + 25, width, height - 50, GAME.GRID_SIZE_X, GAME.GRID_SIZE_Y, THEME.colors.grid.int, 0.5, THEME.colors.backgroundAlt.int, 0.3);
 
     this.player = this.physics.add.sprite(width / 2, height / 2, 'player');
@@ -109,28 +105,36 @@ export class PlayScene extends Phaser.Scene {
       }
     });
 
+    this.setupInput();
+    this.setupSystems();
+
+    this.events.once('shutdown', () => this.cleanup());
+    this.levelOverlay.show(this.level);
+  }
+
+  private setupInput(): void {
+    if (!this.input.keyboard) {
+      throw new Error('Keyboard input is not available');
+    }
+
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.wasdKeys = (this.input.keyboard.addKeys('W,A,S,D') || {}) as Record<string, Phaser.Input.Keyboard.Key>;
+
+    this.pauseKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this.pauseKey.on('down', () => {
+      this.pauseSystem.toggle(this.overlayActive);
+    });
+  }
+
+  private setupSystems(): void {
+    this.setupColliders();
+
     this.pauseSystem = new PauseSystem(this, {
       onResume: () => this.onPauseResumed(),
       onQuit: () => {},
       onPause: () => this.energySystem.stopHeartbeat()
     });
     this.pauseSystem.init();
-
-    if (this.input.keyboard) {
-      this.cursors = this.input.keyboard.createCursorKeys();
-      this.wasdKeys = this.input.keyboard.addKeys('W,A,S,D') as unknown as {
-        W: Phaser.Input.Keyboard.Key;
-        A: Phaser.Input.Keyboard.Key;
-        S: Phaser.Input.Keyboard.Key;
-        D: Phaser.Input.Keyboard.Key;
-      };
-      this.pauseKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-      this.pauseKey.on('down', () => {
-        this.pauseSystem.toggle(this.overlayActive);
-      });
-    }
-
-    this.setupColliders();
 
     this.time.addEvent({
       delay: getPowerUpDelay(this.level),
@@ -144,28 +148,7 @@ export class PlayScene extends Phaser.Scene {
     this.time.delayedCall(this.level === 1 ? POWERUP.WELCOME_DELAY_L1 : POWERUP.WELCOME_DELAY_DEFAULT, () => {
       if (!this.powerUpSystem.getDropped()) this.powerUpSystem.spawn();
     });
-
-    this.events.once('shutdown', () => this.cleanupScene());
-
-    this.levelOverlay.show(this.level);
   }
-
-  private setupColliders(): void {
-    this.physics.add.overlap(this.player, this.coinSystem.getCoinSprite(), () => {
-      this.handleCoinCollection();
-    }, undefined, this);
-
-    this.physics.add.overlap(this.player, this.enemySystem.getGroup(), () => {
-      if (!this.powerUpSystem.hasActive() || this.powerUpSystem.getActiveEffect() !== 'shield') {
-      if (!this.isHurtInvincible) {
-          this.handlePlayerHurt();
-        }
-      }
-    }, undefined, this);
-  }
-
-  private isHurtInvincible: boolean = false;
-  private hurtInvincibleTimer: Phaser.Time.TimerEvent | null = null;
 
   public update(_time: number, delta: number): void {
     if (this.pauseSystem.isActive()) return;
@@ -180,25 +163,33 @@ export class PlayScene extends Phaser.Scene {
       }
     }
 
-    if (this.overlayActive) return;
+    if (!this.overlayActive) {
+      this.powerUpSystem.update(delta);
+      this.handlePlayerMovement();
+      this.enemySystem.update(this.level, this.player.x, this.player.y);
 
-    this.powerUpSystem.update(delta);
-    this.handlePlayerMovement();
-    this.enemySystem.update(this.level, this.player.x, this.player.y);
+      const trigger = this.powerUpSystem.checkTriggers(
+        this.energySystem.getEnergy(),
+        this.enemySystem.getActiveCount(),
+        !!this.powerUpSystem.getDropped()
+      );
 
-    const trigger = this.powerUpSystem.checkTriggers(
-      this.energySystem.getEnergy(),
-      this.enemySystem.getActiveCount(),
-      !!this.powerUpSystem.getDropped()
-    );
-
-    if (trigger) {
-      if (trigger.biasA) {
+      if (trigger) {
         this.powerUpSystem.spawn(trigger.biasA, trigger.biasB);
-      } else {
-        this.powerUpSystem.spawn();
       }
+
+      if (this.comboCount > 0 && performance.now() - this.lastCoinTime > COMBO.TIME_WINDOW_MS) {
+        this.comboCount = 0;
+        this.hud.hideCombo();
+      }
+
+      this.applyActiveEffects();
     }
+  }
+
+  private applyActiveEffects(): void {
+    this.applyPowerUpHud();
+    this.powerUpSystem.checkCollection(this.player);
 
     if (this.powerUpSystem.getActiveEffect() === 'magnet') {
       this.handleMagnetEffect();
@@ -207,34 +198,41 @@ export class PlayScene extends Phaser.Scene {
     if (this.powerUpSystem.getActiveEffect() === 'phase') {
       this.handlePhaseWrap();
     }
+  }
 
-    if (this.isHurtInvincible) {
-      this.hud.updatePowerUp('[INVENCIBLE!]');
-    }
+  private handlePhaseWrap(): void {
+    const { width, height } = this.cameras.main;
+    const wrapped = phaseWrap(this.player.x, this.player.y, width, height);
+    this.player.setPosition(wrapped.x, wrapped.y);
+  }
+
+  private applyPowerUpHud(): void {
+    const timeLeft = this.powerUpSystem.getTimeLeft();
+    const secondsLeft = Math.max(0, Math.ceil(timeLeft / 1000));
 
     if (this.powerUpSystem.hasActive()) {
-      const timeLeft = this.powerUpSystem.getTimeLeft();
-      const secondsLeft = Math.ceil(timeLeft / 1000);
-
       if (!this.isHurtInvincible) {
         this.hud.updatePowerUp(`[${this.powerUpSystem.getActiveEffect()?.toUpperCase()}: ${secondsLeft}S]`);
       }
-
       if (this.powerUpSystem.getActiveEffect() === 'shield' && secondsLeft <= 2) {
-        this.player.setAlpha(Math.sin(_time / 50) > 0 ? 1 : 0.4);
+        this.player.setAlpha(Math.sin(performance.now() / 50) > 0 ? 1 : 0.4);
       }
-    } else {
+    } else if (!this.isHurtInvincible) {
+      this.hud.updatePowerUp('');
+    }
+  }
+
+  private setupColliders(): void {
+    this.physics.add.overlap(this.player, this.coinSystem.getCoinSprite(), () => {
+      this.handleCoinCollection();
+    }, undefined, this);
+
+    this.physics.add.overlap(this.player, this.enemySystem.getGroup(), () => {
+      if (this.powerUpSystem.getActiveEffect() === 'shield') return;
       if (!this.isHurtInvincible) {
-        this.hud.updatePowerUp('');
+        this.handlePlayerHurt();
       }
-    }
-
-    this.powerUpSystem.checkCollection(this.player);
-
-    if (this.comboCount > 0 && performance.now() - this.lastCoinTime > COMBO.TIME_WINDOW_MS) {
-      this.comboCount = 0;
-      this.hud.hideCombo();
-    }
+    }, undefined, this);
   }
 
   private handlePlayerMovement(): void {
@@ -248,15 +246,15 @@ export class PlayScene extends Phaser.Scene {
     let vx = 0;
     let vy = 0;
 
-    if (this.cursors.left.isDown || this.wasdKeys?.A.isDown) {
+    if (this.cursors.left.isDown || this.wasdKeys.A?.isDown) {
       vx = -speed;
-    } else if (this.cursors.right.isDown || this.wasdKeys?.D.isDown) {
+    } else if (this.cursors.right.isDown || this.wasdKeys.D?.isDown) {
       vx = speed;
     }
 
-    if (this.cursors.up.isDown || this.wasdKeys?.W.isDown) {
+    if (this.cursors.up.isDown || this.wasdKeys.W?.isDown) {
       vy = -speed;
-    } else if (this.cursors.down.isDown || this.wasdKeys?.S.isDown) {
+    } else if (this.cursors.down.isDown || this.wasdKeys.S?.isDown) {
       vy = speed;
     }
 
@@ -280,23 +278,6 @@ export class PlayScene extends Phaser.Scene {
     }
   }
 
-  private handlePhaseWrap(): void {
-    const { width, height } = this.cameras.main;
-    const bottomPadding = GAME.WORLD_BOUND_BOTTOM_PADDING;
-
-    if (this.player.x < -16) {
-      this.player.x = width + 16;
-    } else if (this.player.x > width + 16) {
-      this.player.x = -16;
-    }
-
-    if (this.player.y < bottomPadding) {
-      this.player.y = height + 16;
-    } else if (this.player.y > height + 16) {
-      this.player.y = bottomPadding;
-    }
-  }
-
   private handleCoinCollection(): void {
     const result = this.coinSystem.collect();
     const playerScale = this.coinSystem.getPlayerScale();
@@ -304,6 +285,7 @@ export class PlayScene extends Phaser.Scene {
 
     const now = performance.now();
     let multiplier = 1;
+
     if (this.comboCount > 0 && now - this.lastCoinTime < COMBO.TIME_WINDOW_MS) {
       this.comboCount++;
       if (this.comboCount >= 5) {
@@ -314,12 +296,11 @@ export class PlayScene extends Phaser.Scene {
     } else {
       this.comboCount = 1;
     }
-    this.lastCoinTime = now;
 
+    this.lastCoinTime = now;
     const finalScore = Math.round(result.scoreGain * multiplier);
 
     showFloatyText(this, this.coinSystem.getCoinSprite().x, this.coinSystem.getCoinSprite().y, `+${finalScore}`, floatyColor);
-
     if (this.comboCount >= 3) {
       this.hud.showCombo(this.comboCount, multiplier);
     }
@@ -345,7 +326,6 @@ export class PlayScene extends Phaser.Scene {
     }
 
     const goal = getLevelGoal(this.level);
-
     if (this.coinsInLevel >= goal) {
       this.triggerLevelComplete();
     } else {
@@ -359,7 +339,6 @@ export class PlayScene extends Phaser.Scene {
 
     this.energySystem.takeDamage(GAME.HURT_DAMAGE);
     this.hud.updateEnergy(this.energySystem.getPercentage(), performance.now());
-
     soundManager.playHurt();
     this.cameras.main.flash(200, 255, 0, 0);
 
@@ -369,13 +348,10 @@ export class PlayScene extends Phaser.Scene {
     this.isHurtInvincible = true;
     this.player.setTint(0xff0055);
 
-    if (this.hurtInvincibleTimer) {
-      this.hurtInvincibleTimer.destroy();
-    }
+    this.hurtInvincibleTimer?.destroy();
     this.hurtInvincibleTimer = this.time.delayedCall(GAME.HURT_INVINCIBLE_MS, () => {
       this.isHurtInvincible = false;
       this.hurtInvincibleTimer = null;
-
       if (this.powerUpSystem.hasActive()) {
         this.applyPowerUpVisuals();
       } else {
@@ -440,6 +416,10 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private triggerLevelComplete(): void {
+    if (!this.scene.isActive() || !this.scene.isVisible()) {
+      return;
+    }
+
     this.energySystem.stopHeartbeat();
     this.physics.world.pause();
     soundManager.playLevelClear();
@@ -464,7 +444,7 @@ export class PlayScene extends Phaser.Scene {
     }
   }
 
-  private cleanupScene(): void {
+  private cleanup(): void {
     this.energySystem.cleanup();
     this.speedTrail.cleanup();
     this.pauseSystem.cleanup();
@@ -472,8 +452,9 @@ export class PlayScene extends Phaser.Scene {
     this.coinSystem.cleanup();
     this.powerUpSystem.cleanup();
 
-    if (this.pauseKey) {
-      this.pauseKey.removeAllListeners();
-    }
+    this.hurtInvincibleTimer?.destroy();
+    this.hurtInvincibleTimer = null;
+
+    this.pauseKey?.removeAllListeners();
   }
 }
