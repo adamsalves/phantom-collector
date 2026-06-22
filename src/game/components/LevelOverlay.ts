@@ -11,6 +11,7 @@ export class LevelOverlay {
   private active: boolean = false;
   private overlay: Phaser.GameObjects.Rectangle | null = null;
   private texts: Phaser.GameObjects.Text[] = [];
+  private timers: Phaser.Time.TimerEvent[] = [];
   private callbacks: LevelOverlayCallbacks;
 
   constructor(scene: Phaser.Scene, callbacks: LevelOverlayCallbacks) {
@@ -19,6 +20,7 @@ export class LevelOverlay {
   }
 
   public show(level: number): void {
+    this.reset();
     const width = this.scene.cameras.main.width;
     const height = this.scene.cameras.main.height;
 
@@ -27,70 +29,66 @@ export class LevelOverlay {
 
     this.overlay = this.scene.add.rectangle(width / 2, height / 2, width, height, THEME.colors.background.int, 0.9);
 
-    const text1 = this.scene.add.text(width / 2, height / 2 - 30, `LEVEL ${level}`, {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '24px',
-      color: THEME.colors.primary.hex
-    }).setOrigin(0.5);
-    this.texts.push(text1);
+    const showText = (text: string, y: number, color: string) => {
+      const obj = this.scene.add.text(width / 2, y, text, {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '14px',
+        color
+      }).setOrigin(0.5);
+      this.texts.push(obj);
+      return obj;
+    };
 
-    const scenarioName = getScenarioName(level);
-    const text2 = this.scene.add.text(width / 2, height / 2 + 10, scenarioName, {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '12px',
-      color: THEME.colors.accent.hex
-    }).setOrigin(0.5);
-    this.texts.push(text2);
+    showText(`LEVEL ${level}`, height / 2 - 30, THEME.colors.primary.hex);
+    showText(getScenarioName(level), height / 2 + 10, THEME.colors.accent.hex);
+    showText(`GOAL: COLLECT ${getLevelGoal(level)} COINS`, height / 2 + 50, THEME.colors.neutral.white.hex);
 
-    const goal = getLevelGoal(level);
-    const text3 = this.scene.add.text(width / 2, height / 2 + 50, `GOAL: COLLECT ${goal} COINS`, {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '10px',
-      color: THEME.colors.neutral.white.hex
-    }).setOrigin(0.5);
-    this.texts.push(text3);
-
-    this.scene.time.delayedCall(2200, () => {
-      this.destroy();
+    const timer = this.scene.time.delayedCall(2200, () => {
+      this.reset();
       this.scene.physics.world.resume();
       this.callbacks.onComplete();
     });
+    this.timers.push(timer);
   }
 
   public showComplete(level: number, callback: () => void): void {
+    this.reset();
     const width = this.scene.cameras.main.width;
     const height = this.scene.cameras.main.height;
 
     this.active = true;
 
-    const bg = this.scene.add.rectangle(width / 2, height / 2, width, height, THEME.colors.background.int, 0.9);
+    this.overlay = this.scene.add.rectangle(width / 2, height / 2, width, height, THEME.colors.background.int, 0.9);
 
-    const text1 = this.scene.add.text(width / 2, height / 2 - 20, 'LEVEL COMPLETE!', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '22px',
-      color: THEME.colors.success.hex
-    }).setOrigin(0.5);
+    const addText = (text: string, y: number, color: string) =>
+      this.scene.add.text(width / 2, y, text, {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '14px',
+        color
+      }).setOrigin(0.5);
 
-    const text2 = this.scene.add.text(width / 2, height / 2 + 20, `GET READY FOR LEVEL ${level + 1}`, {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '10px',
-      color: THEME.colors.primary.hex
-    }).setOrigin(0.5);
+    this.texts.push(
+      addText('LEVEL COMPLETE!', height / 2 - 20, THEME.colors.success.hex),
+      addText(`GET READY FOR LEVEL ${level + 1}`, height / 2 + 20, THEME.colors.primary.hex)
+    );
 
-    this.scene.time.delayedCall(1500, () => {
-      bg.destroy();
-      text1.destroy();
-      text2.destroy();
-      this.active = false;
+    const timer = this.scene.time.delayedCall(1500, () => {
+      this.reset();
       callback();
     });
+    this.timers.push(timer);
   }
 
   public isActive(): boolean {
     return this.active;
   }
 
-  private destroy(): void {
+  private reset(): void {
+    for (const timer of this.timers) {
+      timer.remove(false);
+    }
+    this.timers = [];
+
     if (this.overlay) {
       this.overlay.destroy();
       this.overlay = null;
@@ -103,6 +101,6 @@ export class LevelOverlay {
   }
 
   public cleanup(): void {
-    this.destroy();
+    this.reset();
   }
 }
