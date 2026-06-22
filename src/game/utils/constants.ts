@@ -12,6 +12,15 @@ export const GAME = {
   GRID_SIZE_Y: 40,
 } as const;
 
+export const ENEMY = {
+  SPAWN_MARGIN_X: 50,
+  SPAWN_MARGIN_Y: 100,
+  WANDER_MIN_SPEED: 50,
+  WANDER_BASE_SPEED: 100,
+  WANDER_SPEED_PER_LEVEL: 20,
+  STALKER_LEVEL_INTERVAL: 5,
+} as const;
+
 export const POWERUP = {
   SPEED_DURATION: 6000,
   SHIELD_DURATION: 5000,
