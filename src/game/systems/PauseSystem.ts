@@ -15,6 +15,7 @@ export class PauseSystem {
   private isTransitioning: boolean = false;
   private pauseStartedAt: number = 0;
   private pauseOverlay: Phaser.GameObjects.Container | null = null;
+  private pausedTweens: Phaser.Tweens.Tween[] = [];
   private callbacks: PauseCallbacks;
 
   constructor(scene: Phaser.Scene, callbacks: PauseCallbacks) {
@@ -38,7 +39,11 @@ export class PauseSystem {
     if (this.isPaused) {
       this.scene.physics.world.pause();
       this.scene.time.paused = true;
-      this.scene.tweens.pauseAll();
+      // Pausa apenas os tweens de gameplay ativos. NÃO usar tweens.pauseAll(),
+      // que no Phaser 3.90 pausa o TweenManager inteiro e impede o fade do
+      // overlay de rodar — travando o pause (isTransitioning preso em true).
+      this.pausedTweens = this.scene.tweens.getTweens();
+      this.pausedTweens.forEach((t) => t.pause());
       this.callbacks.onPause?.();
       this.pauseStartedAt = performance.now();
       this.createOverlay();
@@ -65,7 +70,7 @@ export class PauseSystem {
           this.isPaused = false;
           this.scene.physics.world.resume();
           this.scene.time.paused = false;
-          this.scene.tweens.resumeAll();
+          this.resumePausedTweens();
           this.callbacks.onResume();
         }
       });
@@ -73,9 +78,14 @@ export class PauseSystem {
       this.isPaused = false;
       this.scene.physics.world.resume();
       this.scene.time.paused = false;
-      this.scene.tweens.resumeAll();
+      this.resumePausedTweens();
       this.callbacks.onResume();
     }
+  }
+
+  private resumePausedTweens(): void {
+    this.pausedTweens.forEach((t) => t.resume());
+    this.pausedTweens = [];
   }
 
   public getPauseDuration(): number {
