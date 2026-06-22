@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { PAUSE } from '../utils/constants';
 import { soundManager } from '../audio/SoundGenerator';
+import { THEME } from '../utils/theme';
 
 export interface PauseCallbacks {
   onResume: () => void;
@@ -98,64 +99,64 @@ export class PauseSystem {
 
     this.pauseOverlay = this.scene.add.container(0, 0).setDepth(200).setAlpha(0);
 
-    const background = this.scene.add.rectangle(width / 2, height / 2, width, height, 0x0d041a, PAUSE.OVERLAY_ALPHA);
+    const background = this.scene.add.rectangle(width / 2, height / 2, width, height, THEME.colors.background.int, PAUSE.OVERLAY_ALPHA);
     this.pauseOverlay.add(background);
 
     const pausedText = this.scene.add.text(width / 2, height / 3, 'PAUSED', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '28px',
-      color: '#00f0ff'
-    }).setOrigin(0.5).setShadow(0, 0, '#00f0ff', 10, true, true);
+      color: THEME.colors.primary.hex
+    }).setOrigin(0.5).setShadow(0, 0, THEME.colors.primary.hex, 10, true, true);
     this.pauseOverlay.add(pausedText);
 
     const resumeBtn = this.scene.add.text(width / 2, height * 0.52, 'RESUME', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '14px',
-      color: '#39ff14'
+      color: THEME.colors.success.hex
     }).setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
-      .setShadow(0, 0, '#39ff14', 4, true, true);
+      .setShadow(0, 0, THEME.colors.success.hex, 4, true, true);
 
     resumeBtn.on('pointerdown', () => {
       this.resume();
       soundManager.playPause();
     });
     resumeBtn.on('pointerover', () => {
-      resumeBtn.setColor('#ffffff');
-      resumeBtn.setShadow(0, 0, '#ffffff', 8, true, true);
+      resumeBtn.setColor(THEME.colors.neutral.white.hex);
+      resumeBtn.setShadow(0, 0, THEME.colors.neutral.white.hex, 8, true, true);
     });
     resumeBtn.on('pointerout', () => {
-      resumeBtn.setColor('#39ff14');
-      resumeBtn.setShadow(0, 0, '#39ff14', 4, true, true);
+      resumeBtn.setColor(THEME.colors.success.hex);
+      resumeBtn.setShadow(0, 0, THEME.colors.success.hex, 4, true, true);
     });
     this.pauseOverlay.add(resumeBtn);
 
     const quitBtn = this.scene.add.text(width / 2, height * 0.65, 'QUIT TO MENU', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '14px',
-      color: '#ff007f'
+      color: THEME.colors.accent.hex
     }).setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
-      .setShadow(0, 0, '#ff007f', 4, true, true);
+      .setShadow(0, 0, THEME.colors.accent.hex, 4, true, true);
 
     quitBtn.on('pointerdown', () => {
       soundManager.playPause();
       this.scene.scene.start('MenuScene');
     });
     quitBtn.on('pointerover', () => {
-      quitBtn.setColor('#ffffff');
-      quitBtn.setShadow(0, 0, '#ffffff', 8, true, true);
+      quitBtn.setColor(THEME.colors.neutral.white.hex);
+      quitBtn.setShadow(0, 0, THEME.colors.neutral.white.hex, 8, true, true);
     });
     quitBtn.on('pointerout', () => {
-      quitBtn.setColor('#ff007f');
-      quitBtn.setShadow(0, 0, '#ff007f', 4, true, true);
+      quitBtn.setColor(THEME.colors.accent.hex);
+      quitBtn.setShadow(0, 0, THEME.colors.accent.hex, 4, true, true);
     });
     this.pauseOverlay.add(quitBtn);
 
     const tipText = this.scene.add.text(width / 2, height * 0.8, 'PRESS ESC OR CLICK RESUME TO CONTINUE', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '8px',
-      color: '#888888'
+      color: THEME.colors.neutral.dim.hex
     }).setOrigin(0.5);
     this.pauseOverlay.add(tipText);
 

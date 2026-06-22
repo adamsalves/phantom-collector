@@ -19,11 +19,14 @@ export class RankingManager {
   }
 
   static saveScore(name: string, score: number): void {
-    const entries = RankingManager.getScores();
     const displayName = name.trim() || '---';
-    entries.push({ name: displayName, score, date: new Date().toISOString().slice(0, 10) });
+    const newEntry = { name: displayName, score, date: new Date().toISOString().slice(0, 10) };
+
+    const entries = RankingManager.getScores();
+    entries.push(newEntry);
     entries.sort((a, b) => b.score - a.score);
     if (entries.length > RANKING.MAX_ENTRIES) entries.length = RANKING.MAX_ENTRIES;
+
     try {
       localStorage.setItem(RANKING.STORAGE_KEY, JSON.stringify(entries));
     } catch {

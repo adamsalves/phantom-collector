@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { THEME } from '../utils/theme';
 
 export class HUD {
   private scene: Phaser.Scene;
@@ -16,25 +17,25 @@ export class HUD {
     this.scoreText = this.scene.add.text(20, 15, 'SCORE: 0', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '14px',
-      color: '#ffffff'
+      color: THEME.colors.neutral.white.hex
     });
 
     this.levelText = this.scene.add.text(175, 15, 'LEVEL: 1', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '14px',
-      color: '#00f0ff'
+      color: THEME.colors.primary.hex
     });
 
     this.powerUpText = this.scene.add.text(545, 15, '', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '11px',
-      color: '#ff007f'
+      color: THEME.colors.accent.hex
     });
 
     this.scene.add.text(330, 15, 'ENERGY:', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '12px',
-      color: '#39ff14'
+      color: THEME.colors.success.hex
     });
 
     this.energyBar = this.scene.add.graphics();
@@ -43,7 +44,7 @@ export class HUD {
     this.comboText = this.scene.add.text(350, 380, '', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '12px',
-      color: '#ffd700'
+      color: THEME.colors.warning.hex
     }).setOrigin(0.5).setAlpha(0);
   }
 
@@ -95,17 +96,17 @@ export class HUD {
     const barWidth = 100;
     const barHeight = 14;
 
-    this.energyBar.fillStyle(0x0d041a, 0.8);
+    this.energyBar.fillStyle(THEME.colors.background.int, 0.8);
     this.energyBar.fillRect(barX, barY, barWidth, barHeight);
 
-    this.energyBar.lineStyle(1.5, 0x2d124d, 1);
+    this.energyBar.lineStyle(1.5, THEME.colors.backgroundAlt.int, 1);
     this.energyBar.strokeRect(barX, barY, barWidth, barHeight);
 
-    let color = 0x39ff14;
+    let color: number = THEME.colors.success.int;
     if (percentage < 0.35) {
-      color = 0xff0055;
+      color = THEME.colors.danger.int;
     } else if (percentage < 0.65) {
-      color = 0xffd700;
+      color = THEME.colors.warning.int;
     }
 
     const currentWidth = percentage * barWidth;

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { GAME } from '../utils/constants';
+import { GAME, ENEMY } from '../utils/constants';
 import { getEnemyCount, getEnemySpeed } from '../utils/difficulty';
+import { THEME } from '../utils/theme';
 
 export class EnemySystem {
   private scene: Phaser.Scene;
@@ -21,8 +22,8 @@ export class EnemySystem {
     const count = getEnemyCount(level);
 
     for (let i = 0; i < count; i++) {
-      const rx = Phaser.Math.Between(50, width - 50);
-      const ry = Phaser.Math.Between(100, height - 100);
+      const rx = Phaser.Math.Between(ENEMY.SPAWN_MARGIN_X, width - ENEMY.SPAWN_MARGIN_X);
+      const ry = Phaser.Math.Between(ENEMY.SPAWN_MARGIN_Y, height - ENEMY.SPAWN_MARGIN_Y);
 
       const enemy = this.enemies.create(rx, ry, 'enemy') as Phaser.Physics.Arcade.Sprite;
       enemy.setCollideWorldBounds(true);
@@ -36,11 +37,11 @@ export class EnemySystem {
       }
     }
 
-    if (level % 5 === 0 && count > 0) {
+    if (level % ENEMY.STALKER_LEVEL_INTERVAL === 0 && count > 0) {
       const stalkerIndex = Phaser.Math.Between(0, count - 1);
       const stalker = this.enemies.getChildren()[stalkerIndex] as Phaser.Physics.Arcade.Sprite;
       stalker.setName('stalker');
-      stalker.setTint(0xff00ff);
+      stalker.setTint(THEME.colors.stalker.int);
     }
   }
 
@@ -50,13 +51,13 @@ export class EnemySystem {
       const enemyBody = enemy.body as Phaser.Physics.Arcade.Body;
       if (!enemyBody) return;
 
-      if (level % 5 === 0 && enemy.name === 'stalker') {
+      if (level % ENEMY.STALKER_LEVEL_INTERVAL === 0 && enemy.name === 'stalker') {
         const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, playerX, playerY);
         this.scene.physics.velocityFromRotation(angle, GAME.ENEMY_CHASE_SPEED, enemyBody.velocity);
       } else {
-        if (enemyBody.velocity.length() < 50) {
+        if (enemyBody.velocity.length() < ENEMY.WANDER_MIN_SPEED) {
           const angle = Phaser.Math.Between(0, 360) * (Math.PI / 180);
-          const speed = 100 + level * 20;
+          const speed = ENEMY.WANDER_BASE_SPEED + level * ENEMY.WANDER_SPEED_PER_LEVEL;
           this.scene.physics.velocityFromRotation(angle, speed, enemyBody.velocity);
         }
       }

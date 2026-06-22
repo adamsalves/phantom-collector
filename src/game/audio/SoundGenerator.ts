@@ -7,10 +7,18 @@ export class SoundGenerator {
 
   private initContext(): AudioContext {
     if (!this.ctx) {
-      this.ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const w = window as Window & {
+        AudioContext?: typeof AudioContext;
+        webkitAudioContext?: typeof AudioContext;
+      };
+      const Ctor = w.AudioContext ?? w.webkitAudioContext;
+      if (!Ctor) {
+        throw new Error('Web Audio API is not supported');
+      }
+      this.ctx = new Ctor();
     }
     if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      void this.ctx.resume();
     }
     return this.ctx;
   }

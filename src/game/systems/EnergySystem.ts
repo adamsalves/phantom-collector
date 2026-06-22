@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME, CRISIS } from '../utils/constants';
 import { getEnergyDecay } from '../utils/difficulty';
 import { soundManager } from '../audio/SoundGenerator';
+import { stepEnergyDecay } from '../utils/energy';
 
 export class EnergySystem {
   private scene: Phaser.Scene;
@@ -30,7 +31,7 @@ export class EnergySystem {
   public update(time: number, delta: number): boolean {
     if (this.energy <= 0) return false;
 
-    this.energy -= this.decayRate * (delta / 16.666);
+    this.energy = stepEnergyDecay(this.energy, this.decayRate, delta);
     this.handleCrisisFeedback(time);
 
     if (this.energy <= 0) {
@@ -53,10 +54,6 @@ export class EnergySystem {
     return this.energy;
   }
 
-  public getMaxEnergy(): number {
-    return this.maxEnergy;
-  }
-
   public getPercentage(): number {
     return this.energy / this.maxEnergy;
   }
@@ -67,10 +64,6 @@ export class EnergySystem {
 
   public isAgonic(): boolean {
     return this.energy <= CRISIS.AGONIC_THRESHOLD;
-  }
-
-  public isDead(): boolean {
-    return this.energy <= 0;
   }
 
   private handleCrisisFeedback(time: number): void {
