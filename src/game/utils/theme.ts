@@ -24,6 +24,10 @@ export const THEME = {
       hex: '#aa00ff',
       int: 0xaa00ff
     },
+    stalker: {
+      hex: '#ff00ff',
+      int: 0xff00ff
+    },
     background: {
       hex: '#0d041a',
       int: 0x0d041a

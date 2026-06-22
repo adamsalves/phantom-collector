@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { POWERUP } from '../utils/constants';
+import { THEME } from '../utils/theme';
 
 export class SpeedTrail {
   private scene: Phaser.Scene;
@@ -14,7 +15,7 @@ export class SpeedTrail {
 
     const trail = this.scene.add.sprite(x, y, 'player');
     trail.setAlpha(0.4);
-    trail.setTint(0x00f0ff);
+    trail.setTint(THEME.colors.primary.int);
     this.trails.push(trail);
 
     this.scene.tweens.add({

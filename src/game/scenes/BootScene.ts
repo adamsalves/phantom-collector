@@ -61,8 +61,8 @@ export class BootScene extends Phaser.Scene {
       const ctx = canvas.getContext('2d');
       if (ctx) {
         // Corpo fantasmagórico / Alienígena neon
-        ctx.fillStyle = '#ff0055';
-        ctx.shadowColor = '#ff0055';
+        ctx.fillStyle = THEME.colors.danger.hex;
+        ctx.shadowColor = THEME.colors.danger.hex;
         ctx.shadowBlur = 8;
         
         // Desenha um triângulo assustador estilizado retro
@@ -77,8 +77,8 @@ export class BootScene extends Phaser.Scene {
         ctx.fill();
 
         // Olhos brilhantes neon ciano
-        ctx.fillStyle = '#00f0ff';
-        ctx.shadowColor = '#00f0ff';
+        ctx.fillStyle = THEME.colors.primary.hex;
+        ctx.shadowColor = THEME.colors.primary.hex;
         ctx.shadowBlur = 4;
         ctx.fillRect(8, 12, 4, 4);
         ctx.fillRect(20, 12, 4, 4);
@@ -93,8 +93,8 @@ export class BootScene extends Phaser.Scene {
       canvas.height = 24;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.fillStyle = '#00f0ff';
-        ctx.shadowColor = '#00f0ff';
+        ctx.fillStyle = THEME.colors.primary.hex;
+        ctx.shadowColor = THEME.colors.primary.hex;
         ctx.shadowBlur = 6;
         
         // Raio retrô estilizado
@@ -118,8 +118,8 @@ export class BootScene extends Phaser.Scene {
       canvas.height = 24;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.fillStyle = '#ff007f';
-        ctx.shadowColor = '#ff007f';
+        ctx.fillStyle = THEME.colors.accent.hex;
+        ctx.shadowColor = THEME.colors.accent.hex;
         ctx.shadowBlur = 6;
         
         // Escudo estilizado retro
@@ -184,7 +184,7 @@ export class BootScene extends Phaser.Scene {
         ctx.fill();
 
         // Olhos brilhantes
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = THEME.colors.neutral.white.hex;
         ctx.shadowBlur = 2;
         ctx.fillRect(9, 6, 3, 4);
         ctx.fillRect(14, 6, 3, 4);
@@ -199,7 +199,7 @@ export class BootScene extends Phaser.Scene {
       canvas.height = 4;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = THEME.colors.neutral.white.hex;
         ctx.fillRect(0, 0, 4, 4);
       }
       this.textures.addCanvas('spark', canvas);

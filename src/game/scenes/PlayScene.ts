@@ -346,7 +346,7 @@ export class PlayScene extends Phaser.Scene {
     this.physics.velocityFromRotation(randomAngle, 300, playerBody.velocity);
 
     this.isHurtInvincible = true;
-    this.player.setTint(0xff0055);
+    this.player.setTint(THEME.colors.danger.int);
 
     this.hurtInvincibleTimer?.destroy();
     this.hurtInvincibleTimer = this.time.delayedCall(GAME.HURT_INVINCIBLE_MS, () => {
@@ -367,19 +367,19 @@ export class PlayScene extends Phaser.Scene {
     this.player.setCollideWorldBounds(true);
 
     if (type === 'speed') {
-      this.player.setTint(0x00f0ff);
-      showFloatyText(this, this.player.x, this.player.y - 30, 'SPEED BOOTS!', '#00f0ff');
+      this.player.setTint(THEME.colors.primary.int);
+      showFloatyText(this, this.player.x, this.player.y - 30, 'SPEED BOOTS!', THEME.colors.primary.hex);
     } else if (type === 'shield') {
-      this.player.setTint(0xff007f);
-      showFloatyText(this, this.player.x, this.player.y - 30, 'ECTO SHIELD!', '#ff007f');
+      this.player.setTint(THEME.colors.accent.int);
+      showFloatyText(this, this.player.x, this.player.y - 30, 'ECTO SHIELD!', THEME.colors.accent.hex);
     } else if (type === 'magnet') {
-      this.player.setTint(0x39ff14);
-      showFloatyText(this, this.player.x, this.player.y - 30, 'GOLD MAGNET!', '#39ff14');
+      this.player.setTint(THEME.colors.success.int);
+      showFloatyText(this, this.player.x, this.player.y - 30, 'GOLD MAGNET!', THEME.colors.success.hex);
     } else if (type === 'phase') {
-      this.player.setTint(0xaa00ff);
+      this.player.setTint(THEME.colors.phase.int);
       this.player.setAlpha(0.7);
       this.player.setCollideWorldBounds(false);
-      showFloatyText(this, this.player.x, this.player.y - 30, 'PHASE SHIFT!', '#aa00ff');
+      showFloatyText(this, this.player.x, this.player.y - 30, 'PHASE SHIFT!', THEME.colors.phase.hex);
     }
   }
 
@@ -400,16 +400,16 @@ export class PlayScene extends Phaser.Scene {
 
     switch (effect) {
       case 'speed':
-        this.player.setTint(0x00f0ff);
+        this.player.setTint(THEME.colors.primary.int);
         break;
       case 'shield':
-        this.player.setTint(0xff007f);
+        this.player.setTint(THEME.colors.accent.int);
         break;
       case 'magnet':
-        this.player.setTint(0x39ff14);
+        this.player.setTint(THEME.colors.success.int);
         break;
       case 'phase':
-        this.player.setTint(0xaa00ff);
+        this.player.setTint(THEME.colors.phase.int);
         this.player.setAlpha(0.7);
         break;
     }

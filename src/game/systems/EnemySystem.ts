@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME } from '../utils/constants';
 import { getEnemyCount, getEnemySpeed } from '../utils/difficulty';
+import { THEME } from '../utils/theme';
 
 export class EnemySystem {
   private scene: Phaser.Scene;
@@ -40,7 +41,7 @@ export class EnemySystem {
       const stalkerIndex = Phaser.Math.Between(0, count - 1);
       const stalker = this.enemies.getChildren()[stalkerIndex] as Phaser.Physics.Arcade.Sprite;
       stalker.setName('stalker');
-      stalker.setTint(0xff00ff);
+      stalker.setTint(THEME.colors.stalker.int);
     }
   }
 

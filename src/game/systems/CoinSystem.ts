@@ -98,7 +98,7 @@ export class CoinSystem {
 
   private setupVisuals(): void {
     if (this.coinType === 'gold') {
-      this.coin.setTint(0xffd700);
+      this.coin.setTint(THEME.colors.warning.int);
 
       this.scene.tweens.add({
         targets: this.coin,
@@ -109,7 +109,7 @@ export class CoinSystem {
         ease: 'Sine.easeInOut'
       });
     } else if (this.coinType === 'silver') {
-      this.coin.setTint(0xc0c0c0);
+      this.coin.setTint(THEME.colors.neutral.silver.int);
 
       this.scene.tweens.add({
         targets: this.coin,
@@ -159,7 +159,7 @@ export class CoinSystem {
           scale: { start: 1.2, end: 0 },
           lifespan: 500,
           speed: { min: 20, max: 50 },
-          tint: [0xff007f, 0x00f0ff, 0x39ff14, 0xffd700]
+          tint: [THEME.colors.accent.int, THEME.colors.primary.int, THEME.colors.success.int, THEME.colors.warning.int]
         });
         this.coinParticles.start();
       }
@@ -179,7 +179,7 @@ export class CoinSystem {
       if (this.coinParticles) {
         this.coinParticles.setConfig({
           frequency: -1,
-          tint: 0xc0c0c0,
+          tint: THEME.colors.neutral.silver.int,
           scale: { start: 1.5, end: 0 },
           lifespan: 600,
           speed: { min: 40, max: 120 }
@@ -193,7 +193,7 @@ export class CoinSystem {
       if (this.coinParticles) {
         this.coinParticles.setConfig({
           frequency: -1,
-          tint: [0xff007f, 0x00f0ff, 0x39ff14, 0xffd700],
+          tint: [THEME.colors.accent.int, THEME.colors.primary.int, THEME.colors.success.int, THEME.colors.warning.int],
           scale: { start: 2.0, end: 0 },
           lifespan: 700,
           speed: { min: 60, max: 150 }
