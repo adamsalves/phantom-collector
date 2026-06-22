@@ -10,6 +10,7 @@ export const GAME = {
   WORLD_BOUND_BOTTOM_PADDING: 50,
   GRID_SIZE_X: 40,
   GRID_SIZE_Y: 40,
+  REFERENCE_FRAME_MS: 1000 / 60,
 } as const;
 
 export const ENEMY = {

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME, POWERUP, COMBO } from '../utils/constants';
 import { THEME } from '../utils/theme';
 import { phaseWrap } from '../utils/phaseWrap';
+import { shouldTakeEnemyDamage } from '../utils/combat';
 import { getLevelGoal, getPowerUpDelay } from '../utils/difficulty';
 import { soundManager } from '../audio/SoundGenerator';
 import { EnergySystem } from '../systems/EnergySystem';
@@ -228,8 +229,7 @@ export class PlayScene extends Phaser.Scene {
     }, undefined, this);
 
     this.physics.add.overlap(this.player, this.enemySystem.getGroup(), () => {
-      if (this.powerUpSystem.getActiveEffect() === 'shield') return;
-      if (!this.isHurtInvincible) {
+      if (shouldTakeEnemyDamage(this.powerUpSystem.getActiveEffect(), this.isHurtInvincible)) {
         this.handlePlayerHurt();
       }
     }, undefined, this);

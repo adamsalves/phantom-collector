@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { POWERUP } from '../utils/constants';
 import { soundManager } from '../audio/SoundGenerator';
+import { tickPowerUp } from '../utils/powerupTimer';
 
 export type PowerUpType = 'speed' | 'shield' | 'magnet' | 'phase';
 
@@ -41,9 +42,10 @@ export class PowerUpSystem {
 
   public update(delta: number): void {
     if (this.activeEffect && this.powerUpTimeLeft > 0) {
-      this.powerUpTimeLeft -= delta;
+      const { timeLeft, expired } = tickPowerUp(this.powerUpTimeLeft, delta);
+      this.powerUpTimeLeft = timeLeft;
 
-      if (this.powerUpTimeLeft <= 0) {
+      if (expired) {
         this.deactivate();
       }
     }
