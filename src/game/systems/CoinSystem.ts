@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { getCoinValue, getCoinEnergy, pickCoinType } from '../utils/coinHelper';
 import { soundManager } from '../audio/SoundGenerator';
+import { THEME } from '../utils/theme';
 
 export type CoinType = 'gold' | 'silver' | 'rainbow';
 
@@ -213,9 +214,9 @@ export class CoinSystem {
   }
 
   public getFloatyColor(): string {
-    if (this.coinType === 'silver') return '#c0c0c0';
-    if (this.coinType === 'rainbow') return '#00f0ff';
-    return '#ffd700';
+    if (this.coinType === 'silver') return THEME.colors.neutral.silver.hex;
+    if (this.coinType === 'rainbow') return THEME.colors.primary.hex;
+    return THEME.colors.warning.hex;
   }
 
   public getPlayerScale(): number {
