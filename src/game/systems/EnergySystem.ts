@@ -53,10 +53,6 @@ export class EnergySystem {
     return this.energy;
   }
 
-  public getMaxEnergy(): number {
-    return this.maxEnergy;
-  }
-
   public getPercentage(): number {
     return this.energy / this.maxEnergy;
   }
@@ -67,10 +63,6 @@ export class EnergySystem {
 
   public isAgonic(): boolean {
     return this.energy <= CRISIS.AGONIC_THRESHOLD;
-  }
-
-  public isDead(): boolean {
-    return this.energy <= 0;
   }
 
   private handleCrisisFeedback(time: number): void {

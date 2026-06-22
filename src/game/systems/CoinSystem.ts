@@ -209,10 +209,6 @@ export class CoinSystem {
     return this.coin;
   }
 
-  public getCoinType(): CoinType {
-    return this.coinType;
-  }
-
   public getFloatyColor(): string {
     if (this.coinType === 'silver') return THEME.colors.neutral.silver.hex;
     if (this.coinType === 'rainbow') return THEME.colors.primary.hex;
